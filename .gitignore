@@ -1,5 +1,6 @@
 # added by user
 data/*
+cnn_logs/*
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
