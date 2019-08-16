@@ -49,6 +49,7 @@ def predict(pet_input,
             crop_mr              = False,
             patchsize            = (128,128,128),
             overlap              = 8,
+            output_on_pet_grid   = False,
             debug_mode           = False):
 
   if seriesdesc is None:
@@ -204,22 +205,6 @@ def predict(pet_input,
 
   pet_vol_mr_grid_interpolated = aff_transform(pet_vol, pet_mr_interp_aff, mr_vol_interpolated.shape, cval = pet_vol.min()) 
  
-  # construct the affine of the prediction which is the mr affine but with different voxel size
-  output_affine = mr_affine.copy()
-  for i in range(3):  output_affine[i,:-1] *= training_voxsize[i]/np.sqrt((output_affine[i,:-1]**2).sum())
-
-  # create the output affine in RAS orientation to save niftis
-  output_affine_ras       = output_affine.copy()
-  output_affine_ras[0,-1] = (-1 * output_affine @ np.array([mr_vol_interpolated.shape[0]-1,0,0,1]))[0]
-  output_affine_ras[1,-1] = (-1 * output_affine @ np.array([0,mr_vol_interpolated.shape[1]-1,0,1]))[1]
-   
-  # save the aligned pet and mr inputs (useful to double check the alignment)
-  if debug_mode:
-    nib.save(nib.Nifti1Image(np.flip(np.flip(pet_vol_mr_grid_interpolated,0),1), output_affine_ras), 
-             os.path.join(os.path.dirname(odir),'input_pet.nii'))
-    nib.save(nib.Nifti1Image(np.flip(np.flip(mr_vol_interpolated,0),1), output_affine_ras), 
-             os.path.join(os.path.dirname(odir),'input_mr.nii'))
-
   # convert the input volumes to float32
   if not mr_vol_interpolated.dtype == np.float32: 
     mr_vol_interpolated  = mr_vol_interpolated.astype(np.float32)
@@ -228,10 +213,10 @@ def predict(pet_input,
 
   # normalize the data: we divide the images by the specified percentile (more stable than the max)
   if verbose: print('\nnormalizing the input images')
-  mr_max      = np.percentile(mr_vol_interpolated, perc)
+  mr_max = np.percentile(mr_vol_interpolated, perc)
   mr_vol_interpolated /= mr_max
   
-  pet_max              = np.percentile(pet_vol_mr_grid_interpolated, perc)
+  pet_max = np.percentile(pet_vol_mr_grid_interpolated, perc)
   pet_vol_mr_grid_interpolated /= pet_max
  
   ############################
@@ -287,24 +272,54 @@ def predict(pet_input,
 
   # safe the input volumes in case of debug mode 
   if debug_mode: 
-    np.savez_compressed('debug_volumes.npz', 
+    np.savez_compressed(odir + '_debug.npz', 
                         mr_vol = mr_vol, 
                         mr_vol_interpolated = mr_vol_interpolated,
                         pet_vol = pet_vol,
-                        pet_vol_mr_grid = pet_vol_mr_grid,
                         pet_vol_mr_grid_interpolated = pet_vol_mr_grid_interpolated,
                         predicted_bow = predicted_bow,
                         mr_affine = mr_affine, pet_affine = pet_affine,
+                        pet_mr_interp_aff = pet_mr_interp_aff,
                         training_voxsize = training_voxsize)
 
   print('\n\n------------------------------------------')
   print('------------------------------------------')
   print('\nCNN prediction finished')
 
+
   ##############################################################
-  ########## write the output as nifti and dcm #################
+  ########## write the output as nifti, png, dcm ###############
   ##############################################################
-  
+
+  # write output pngs
+  pmax = np.percentile(pet_vol_mr_grid_interpolated, 99.99)
+  mmax = np.percentile(mr_vol_interpolated, 99.99)
+  imshow_kwargs = [{'cmap':py.cm.Greys_r, 'vmin':0, 'vmax':mmax},
+                   {'cmap':py.cm.Greys,   'vmin':0, 'vmax':pmax},
+                   {'cmap':py.cm.Greys,   'vmin':0, 'vmax':pmax}]
+
+  vi = ThreeAxisViewer([mr_vol_interpolated, pet_vol_mr_grid_interpolated, predicted_bow], 
+                       imshow_kwargs = imshow_kwargs, ls = '')
+  vi.fig.savefig(odir + '.png')
+  py.close(vi.fig)
+  py.close(vi.fig_cb)
+  py.close(vi.fig_sl)
+
+  #---------------------------------------------------------------
+  # generate the output affines
+  if output_on_pet_grid:
+    output_affine = pet_affine.copy()
+    predicted_bow = aff_transform(predicted_bow, np.linalg.inv(pet_mr_interp_aff), 
+                                  pet_vol.shape, cval = pet_vol.min()) 
+  else:
+    output_affine = mr_affine.copy()
+    for i in range(3):  output_affine[i,:-1] *= training_voxsize[i]/np.sqrt((output_affine[i,:-1]**2).sum())
+
+  # create the output affine in RAS orientation to save niftis
+  output_affine_ras       = output_affine.copy()
+  output_affine_ras[0,-1] = (-1 * output_affine @ np.array([predicted_bow.shape[0]-1,0,0,1]))[0]
+  output_affine_ras[1,-1] = (-1 * output_affine @ np.array([0,predicted_bow.shape[1]-1,0,1]))[1]
+   
   #------------------------------------------------------------
   # write a simple nifti as fall back in case the dicoms are not working
   # keep in mind that nifti used RAS internally
@@ -334,21 +349,6 @@ def predict(pet_input,
                           **dcm_kwargs)
     print('\nWrote dicom folder:')
     print(odir,'\n')
-  #---  
-  
-  # write output pngs
-  pmax = np.percentile(pet_vol_mr_grid_interpolated, 99.99)
-  mmax = np.percentile(mr_vol_interpolated, 99.99)
-  imshow_kwargs = [{'cmap':py.cm.Greys_r, 'vmin':0, 'vmax':mmax},
-                   {'cmap':py.cm.Greys,   'vmin':0, 'vmax':pmax},
-                   {'cmap':py.cm.Greys,   'vmin':0, 'vmax':pmax}]
-
-  vi = ThreeAxisViewer([mr_vol_interpolated, pet_vol_mr_grid_interpolated, predicted_bow], 
-                       imshow_kwargs = imshow_kwargs, ls = '')
-  vi.fig.savefig(odir + '.png')
-  py.close(vi.fig)
-  py.close(vi.fig_cb)
-  py.close(vi.fig_sl)
 
   print('------------------------------------------')
   print('------------------------------------------')
