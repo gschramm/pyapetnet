@@ -14,7 +14,8 @@ from keras.models          import load_model
 
 from .threeaxisviewer     import ThreeAxisViewer
 from .read_dicom          import DicomVolume
-from .rigid_registration  import regis_cost_func, aff
+from .rigid_registration  import regis_cost_func, neg_mutual_information
+from .aff_transform       import aff_transform, kul_aff
 from .write_dicom         import write_3d_static_dicom
 
 if os.getenv('DISPLAY') is not None:
@@ -29,15 +30,14 @@ from time import time
 from .generators import PatchSequence
 
 from .zoom3d             import zoom3d
-from .rigid_registration import aff_transform
 
 #--------------------------------------------------------------------------------------
 
-def predict(mr_input             = '../../demo_data/Tim-Patient-65/t1_dcm/*.IMA',
-            pet_input            = '../../demo_data/Tim-Patient-65/pet_dcm/*.ima',
+def predict(pet_input,
+            mr_input,
+            model_name,
             input_format         = 'dicom',
             odir                 = None,
-            model_name           = '181009_fdg_pe2i_bet_10.h5',
             model_dir            = os.path.join('..','trained_models'),
             perc                 = 99.99,
             verbose              = False,
@@ -137,29 +137,48 @@ def predict(mr_input             = '../../demo_data/Tim-Patient-65/t1_dcm/*.IMA'
     
   # interpolate the PET image to the MR voxel grid
   if verbose: print('\ninterpolationg PET to MR grid')
-  pet_vol_mr_grid = aff_transform(pet_vol, np.linalg.inv(pet_affine) @ mr_affine, 
-                                  output_shape = mr_vol.shape)
 
-  ##############################################################
-  ########## coregister the images #############################
-  ##############################################################
+  # this is the affine that maps from the PET onto the MR grid
+  pre_affine = np.linalg.inv(pet_affine) @ mr_affine
+
+  ################################################################
+  ############ coregister the images #############################
+  ################################################################
+ 
   if coreg: 
-    if verbose: print('\nCoregistering the images')
-    # check if coregistration affine already exists
-  
-    if os.path.exists(regis_affine_file):
-      regis_affine = np.loadtxt(regis_affine_file) 
-      if verbose: print('\nLoading coregistration parameters from: ', regis_affine_file)
-    else:
-      res = minimize(regis_cost_func, np.zeros(6), args = (mr_vol, pet_vol_mr_grid, True), method = 'Powell', 
-                     options = {'ftol':1e-2, 'xtol':1e-2, 'disp':True, 'maxiter':10, 'maxfev':500})
-      
-      regis_affine = aff(res.x, origin = np.array(pet_vol_mr_grid.shape)/2)
-      np.savetxt(regis_affine_file, regis_affine)
-  
-    # apply affine for coregistering pet and mr
-    pet_vol_mr_grid = aff_transform(pet_vol_mr_grid, regis_affine, output_shape = mr_vol.shape)
-  
+    # rigidly align the shifted PET to CT by minimizing neg mutual information
+    # downsample the arrays by a factor for a fast pre-registration
+    reg_params = np.zeros(6)
+    
+    # (1) initial registration with downsampled arrays
+    # define the down sampling factor
+    dsf    = 3
+    ds_aff = np.diag([dsf,dsf,dsf,1.])
+    
+    mr_vol_ds = aff_transform(mr_vol, ds_aff, np.ceil(np.array(mr_vol.shape)/dsf).astype(int))
+
+    res = minimize(regis_cost_func, reg_params, 
+                   args = (mr_vol_ds, pet_vol, True, True, neg_mutual_information, pre_affine @ ds_aff), 
+                   method = 'Powell', 
+                   options = {'ftol':1e-2, 'xtol':1e-2, 'disp':True, 'maxiter':20, 'maxfev':5000})
+    
+    reg_params = res.x.copy()
+    # we have to scale the translations by the down sample factor since they are in voxels
+    reg_params[:3] *= dsf
+    
+    # (2) registration with full arrays
+    res = minimize(regis_cost_func, reg_params, 
+                   args = (mr_vol, pet_vol, True, True, neg_mutual_information, pre_affine), 
+                   method = 'Powell', 
+                   options = {'ftol':1e-2, 'xtol':1e-2, 'disp':True, 'maxiter':20, 'maxfev':5000})
+    reg_params = res.x.copy()
+
+    regis_aff = pre_affine @ kul_aff(reg_params, origin = np.array(mr_vol.shape)/2)
+  else:
+    regis_aff = pre_affine.copy()
+
+  # the regis_aff is the affine that maps from the PET onto MR grid including coregistration
+
   #############################################################
   #############################################################
 
@@ -177,8 +196,13 @@ def predict(mr_input             = '../../demo_data/Tim-Patient-65/t1_dcm/*.IMA'
   # this is needed because the model was trained on 1mm^3 voxels
   if verbose: print('\ninterpolationg input volumes to 1mm^3 voxels')
   zoomfacs            = mr_voxsize / training_voxsize
-  mr_vol_1mm          = zoom3d(mr_vol,          zoomfacs)
-  pet_vol_mr_grid_1mm = zoom3d(pet_vol_mr_grid, zoomfacs)
+  mr_vol_1mm          = zoom3d(mr_vol, zoomfacs)
+
+  # this is the final affine that maps from the PET grid to interpolated MR grid 
+  # using the small voxels used during training 
+  pet_mr_interp_aff   = regis_aff @ np.diag(np.concatenate((1./zoomfacs,[1])))
+
+  pet_vol_mr_grid_1mm = aff_transform(pet_vol, pet_mr_interp_aff, mr_vol_1mm.shape, cval = pet_vol.min()) 
  
   # construct the affine of the prediction which is the mr affine but with different voxel size
   output_affine = mr_affine.copy()
