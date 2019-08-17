@@ -14,7 +14,8 @@ from keras.models          import load_model
 
 from .threeaxisviewer     import ThreeAxisViewer
 from .read_dicom          import DicomVolume
-from .rigid_registration  import regis_cost_func, aff
+from .rigid_registration  import regis_cost_func, neg_mutual_information
+from .aff_transform       import aff_transform, kul_aff
 from .write_dicom         import write_3d_static_dicom
 
 if os.getenv('DISPLAY') is not None:
@@ -29,15 +30,14 @@ from time import time
 from .generators import PatchSequence
 
 from .zoom3d             import zoom3d
-from .rigid_registration import aff_transform
 
 #--------------------------------------------------------------------------------------
 
-def predict(mr_input             = '../../demo_data/Tim-Patient-65/t1_dcm/*.IMA',
-            pet_input            = '../../demo_data/Tim-Patient-65/pet_dcm/*.ima',
+def predict(pet_input,
+            mr_input,
+            model_name,
             input_format         = 'dicom',
             odir                 = None,
-            model_name           = '181009_fdg_pe2i_bet_10.h5',
             model_dir            = os.path.join('..','trained_models'),
             perc                 = 99.99,
             verbose              = False,
@@ -49,6 +49,7 @@ def predict(mr_input             = '../../demo_data/Tim-Patient-65/t1_dcm/*.IMA'
             crop_mr              = False,
             patchsize            = (128,128,128),
             overlap              = 8,
+            output_on_pet_grid   = False,
             debug_mode           = False):
 
   if seriesdesc is None:
@@ -137,29 +138,48 @@ def predict(mr_input             = '../../demo_data/Tim-Patient-65/t1_dcm/*.IMA'
     
   # interpolate the PET image to the MR voxel grid
   if verbose: print('\ninterpolationg PET to MR grid')
-  pet_vol_mr_grid = aff_transform(pet_vol, np.linalg.inv(pet_affine) @ mr_affine, 
-                                  output_shape = mr_vol.shape)
 
-  ##############################################################
-  ########## coregister the images #############################
-  ##############################################################
+  # this is the affine that maps from the PET onto the MR grid
+  pre_affine = np.linalg.inv(pet_affine) @ mr_affine
+
+  ################################################################
+  ############ coregister the images #############################
+  ################################################################
+ 
   if coreg: 
-    if verbose: print('\nCoregistering the images')
-    # check if coregistration affine already exists
-  
-    if os.path.exists(regis_affine_file):
-      regis_affine = np.loadtxt(regis_affine_file) 
-      if verbose: print('\nLoading coregistration parameters from: ', regis_affine_file)
-    else:
-      res = minimize(regis_cost_func, np.zeros(6), args = (mr_vol, pet_vol_mr_grid, True), method = 'Powell', 
-                     options = {'ftol':1e-2, 'xtol':1e-2, 'disp':True, 'maxiter':10, 'maxfev':500})
-      
-      regis_affine = aff(res.x, origin = np.array(pet_vol_mr_grid.shape)/2)
-      np.savetxt(regis_affine_file, regis_affine)
-  
-    # apply affine for coregistering pet and mr
-    pet_vol_mr_grid = aff_transform(pet_vol_mr_grid, regis_affine, output_shape = mr_vol.shape)
-  
+    # rigidly align the shifted PET to CT by minimizing neg mutual information
+    # downsample the arrays by a factor for a fast pre-registration
+    reg_params = np.zeros(6)
+    
+    # (1) initial registration with downsampled arrays
+    # define the down sampling factor
+    dsf    = 3
+    ds_aff = np.diag([dsf,dsf,dsf,1.])
+    
+    mr_vol_ds = aff_transform(mr_vol, ds_aff, np.ceil(np.array(mr_vol.shape)/dsf).astype(int))
+
+    res = minimize(regis_cost_func, reg_params, 
+                   args = (mr_vol_ds, pet_vol, True, True, neg_mutual_information, pre_affine @ ds_aff), 
+                   method = 'Powell', 
+                   options = {'ftol':1e-2, 'xtol':1e-2, 'disp':True, 'maxiter':20, 'maxfev':5000})
+    
+    reg_params = res.x.copy()
+    # we have to scale the translations by the down sample factor since they are in voxels
+    reg_params[:3] *= dsf
+    
+    # (2) registration with full arrays
+    res = minimize(regis_cost_func, reg_params, 
+                   args = (mr_vol, pet_vol, True, True, neg_mutual_information, pre_affine), 
+                   method = 'Powell', 
+                   options = {'ftol':1e-2, 'xtol':1e-2, 'disp':True, 'maxiter':20, 'maxfev':5000})
+    reg_params = res.x.copy()
+
+    regis_aff = pre_affine @ kul_aff(reg_params, origin = np.array(mr_vol.shape)/2)
+  else:
+    regis_aff = pre_affine.copy()
+
+  # the regis_aff is the affine that maps from the PET onto MR grid including coregistration
+
   #############################################################
   #############################################################
 
@@ -177,38 +197,27 @@ def predict(mr_input             = '../../demo_data/Tim-Patient-65/t1_dcm/*.IMA'
   # this is needed because the model was trained on 1mm^3 voxels
   if verbose: print('\ninterpolationg input volumes to 1mm^3 voxels')
   zoomfacs            = mr_voxsize / training_voxsize
-  mr_vol_1mm          = zoom3d(mr_vol,          zoomfacs)
-  pet_vol_mr_grid_1mm = zoom3d(pet_vol_mr_grid, zoomfacs)
+  mr_vol_interpolated          = zoom3d(mr_vol, zoomfacs)
+
+  # this is the final affine that maps from the PET grid to interpolated MR grid 
+  # using the small voxels used during training 
+  pet_mr_interp_aff   = regis_aff @ np.diag(np.concatenate((1./zoomfacs,[1])))
+
+  pet_vol_mr_grid_interpolated = aff_transform(pet_vol, pet_mr_interp_aff, mr_vol_interpolated.shape, cval = pet_vol.min()) 
  
-  # construct the affine of the prediction which is the mr affine but with different voxel size
-  output_affine = mr_affine.copy()
-  for i in range(3):  output_affine[i,:-1] *= training_voxsize[i]/np.sqrt((output_affine[i,:-1]**2).sum())
-
-  # create the output affine in RAS orientation to save niftis
-  output_affine_ras       = output_affine.copy()
-  output_affine_ras[0,-1] = (-1 * output_affine @ np.array([mr_vol_1mm.shape[0]-1,0,0,1]))[0]
-  output_affine_ras[1,-1] = (-1 * output_affine @ np.array([0,mr_vol_1mm.shape[1]-1,0,1]))[1]
-   
-  # save the aligned pet and mr inputs (useful to double check the alignment)
-  if debug_mode:
-    nib.save(nib.Nifti1Image(np.flip(np.flip(pet_vol_mr_grid_1mm,0),1), output_affine_ras), 
-             os.path.join(os.path.dirname(odir),'input_pet.nii'))
-    nib.save(nib.Nifti1Image(np.flip(np.flip(mr_vol_1mm,0),1), output_affine_ras), 
-             os.path.join(os.path.dirname(odir),'input_mr.nii'))
-
   # convert the input volumes to float32
-  if not mr_vol_1mm.dtype == np.float32: 
-    mr_vol_1mm  = mr_vol_1mm.astype(np.float32)
-  if not pet_vol_mr_grid_1mm.dtype == np.float32: 
-    pet_vol_mr_grid_1mm = pet_vol_mr_grid_1mm.astype(np.float32)
+  if not mr_vol_interpolated.dtype == np.float32: 
+    mr_vol_interpolated  = mr_vol_interpolated.astype(np.float32)
+  if not pet_vol_mr_grid_interpolated.dtype == np.float32: 
+    pet_vol_mr_grid_interpolated = pet_vol_mr_grid_interpolated.astype(np.float32)
 
   # normalize the data: we divide the images by the specified percentile (more stable than the max)
   if verbose: print('\nnormalizing the input images')
-  mr_max      = np.percentile(mr_vol_1mm, perc)
-  mr_vol_1mm /= mr_max
+  mr_max = np.percentile(mr_vol_interpolated, perc)
+  mr_vol_interpolated /= mr_max
   
-  pet_max              = np.percentile(pet_vol_mr_grid_1mm, perc)
-  pet_vol_mr_grid_1mm /= pet_max
+  pet_max = np.percentile(pet_vol_mr_grid_interpolated, perc)
+  pet_vol_mr_grid_interpolated /= pet_max
  
   ############################
   # make the actual prediction
@@ -219,15 +228,15 @@ def predict(mr_input             = '../../demo_data/Tim-Patient-65/t1_dcm/*.IMA'
   if patchsize is None:
     # case of predicting the whole volume in one big chunk
     # bring the input volumes in the correct shape for the model
-    x = [np.expand_dims(np.expand_dims(pet_vol_mr_grid_1mm,0),-1), np.expand_dims(np.expand_dims(mr_vol_1mm,0),-1)]
+    x = [np.expand_dims(np.expand_dims(pet_vol_mr_grid_interpolated,0),-1), np.expand_dims(np.expand_dims(mr_vol_interpolated,0),-1)]
     predicted_bow = model.predict(x).squeeze() 
   else:
     # case of doing the prediction in multiple smaller 3D chunks (patches)
-    predicted_bow = np.zeros(pet_vol_mr_grid_1mm.shape, dtype = np.float32)
+    predicted_bow = np.zeros(pet_vol_mr_grid_interpolated.shape, dtype = np.float32)
 
-    for i in range(pet_vol_mr_grid_1mm.shape[0]//patchsize[0] + 1):
-      for j in range(pet_vol_mr_grid_1mm.shape[1]//patchsize[1] + 1):
-        for k in range(pet_vol_mr_grid_1mm.shape[2]//patchsize[2] + 1):
+    for i in range(pet_vol_mr_grid_interpolated.shape[0]//patchsize[0] + 1):
+      for j in range(pet_vol_mr_grid_interpolated.shape[1]//patchsize[1] + 1):
+        for k in range(pet_vol_mr_grid_interpolated.shape[2]//patchsize[2] + 1):
           istart = max(i*patchsize[0] - overlap, 0)
           jstart = max(j*patchsize[1] - overlap, 0)
           kstart = max(k*patchsize[2] - overlap, 0)
@@ -236,20 +245,20 @@ def predict(mr_input             = '../../demo_data/Tim-Patient-65/t1_dcm/*.IMA'
           joffset = j*patchsize[1] - jstart
           koffset = k*patchsize[2] - kstart
 
-          iend  = min(((i+1)*patchsize[0] + overlap), pet_vol_mr_grid_1mm.shape[0])
-          jend  = min(((j+1)*patchsize[1] + overlap), pet_vol_mr_grid_1mm.shape[1])
-          kend  = min(((k+1)*patchsize[2] + overlap), pet_vol_mr_grid_1mm.shape[2])
+          iend  = min(((i+1)*patchsize[0] + overlap), pet_vol_mr_grid_interpolated.shape[0])
+          jend  = min(((j+1)*patchsize[1] + overlap), pet_vol_mr_grid_interpolated.shape[1])
+          kend  = min(((k+1)*patchsize[2] + overlap), pet_vol_mr_grid_interpolated.shape[2])
 
-          pet_patch  = pet_vol_mr_grid_1mm[istart:iend,jstart:jend,kstart:kend]
-          mr_patch   = mr_vol_1mm[istart:iend,jstart:jend,kstart:kend]
+          pet_patch  = pet_vol_mr_grid_interpolated[istart:iend,jstart:jend,kstart:kend]
+          mr_patch   = mr_vol_interpolated[istart:iend,jstart:jend,kstart:kend]
          
           # make the prediction
           x = [np.expand_dims(np.expand_dims(pet_patch,0),-1), np.expand_dims(np.expand_dims(mr_patch,0),-1)]
           tmp = model.predict(x).squeeze() 
 
-          ntmp0  = min((i+1)*patchsize[0], pet_vol_mr_grid_1mm.shape[0]) - i*patchsize[0]
-          ntmp1  = min((j+1)*patchsize[1], pet_vol_mr_grid_1mm.shape[1]) - j*patchsize[1]
-          ntmp2  = min((k+1)*patchsize[2], pet_vol_mr_grid_1mm.shape[2]) - k*patchsize[2]
+          ntmp0  = min((i+1)*patchsize[0], pet_vol_mr_grid_interpolated.shape[0]) - i*patchsize[0]
+          ntmp1  = min((j+1)*patchsize[1], pet_vol_mr_grid_interpolated.shape[1]) - j*patchsize[1]
+          ntmp2  = min((k+1)*patchsize[2], pet_vol_mr_grid_interpolated.shape[2]) - k*patchsize[2]
           
           predicted_bow[i*patchsize[0]:(i*patchsize[0] + ntmp0),j*patchsize[1]:(j*patchsize[1] + ntmp1), k*patchsize[2]:(k*patchsize[2]+ntmp2)] = tmp[ioffset:(ioffset+ntmp0),joffset:(joffset+ntmp1),koffset:(koffset+ntmp2)]
 
@@ -257,30 +266,60 @@ def predict(mr_input             = '../../demo_data/Tim-Patient-65/t1_dcm/*.IMA'
   
   # unnormalize the data
   if verbose: print('\nunnormalizing the images')
-  mr_vol_1mm          *= mr_max
-  pet_vol_mr_grid_1mm *= pet_max
+  mr_vol_interpolated          *= mr_max
+  pet_vol_mr_grid_interpolated *= pet_max
   predicted_bow       *= pet_max
 
   # safe the input volumes in case of debug mode 
   if debug_mode: 
-    np.savez_compressed('debug_volumes.npz', 
+    np.savez_compressed(odir + '_debug.npz', 
                         mr_vol = mr_vol, 
-                        mr_vol_1mm = mr_vol_1mm,
+                        mr_vol_interpolated = mr_vol_interpolated,
                         pet_vol = pet_vol,
-                        pet_vol_mr_grid = pet_vol_mr_grid,
-                        pet_vol_mr_grid_1mm = pet_vol_mr_grid_1mm,
+                        pet_vol_mr_grid_interpolated = pet_vol_mr_grid_interpolated,
                         predicted_bow = predicted_bow,
                         mr_affine = mr_affine, pet_affine = pet_affine,
+                        pet_mr_interp_aff = pet_mr_interp_aff,
                         training_voxsize = training_voxsize)
 
   print('\n\n------------------------------------------')
   print('------------------------------------------')
   print('\nCNN prediction finished')
 
+
   ##############################################################
-  ########## write the output as nifti and dcm #################
+  ########## write the output as nifti, png, dcm ###############
   ##############################################################
-  
+
+  # write output pngs
+  pmax = np.percentile(pet_vol_mr_grid_interpolated, 99.99)
+  mmax = np.percentile(mr_vol_interpolated, 99.99)
+  imshow_kwargs = [{'cmap':py.cm.Greys_r, 'vmin':0, 'vmax':mmax},
+                   {'cmap':py.cm.Greys,   'vmin':0, 'vmax':pmax},
+                   {'cmap':py.cm.Greys,   'vmin':0, 'vmax':pmax}]
+
+  vi = ThreeAxisViewer([mr_vol_interpolated, pet_vol_mr_grid_interpolated, predicted_bow], 
+                       imshow_kwargs = imshow_kwargs, ls = '')
+  vi.fig.savefig(odir + '.png')
+  py.close(vi.fig)
+  py.close(vi.fig_cb)
+  py.close(vi.fig_sl)
+
+  #---------------------------------------------------------------
+  # generate the output affines
+  if output_on_pet_grid:
+    output_affine = pet_affine.copy()
+    predicted_bow = aff_transform(predicted_bow, np.linalg.inv(pet_mr_interp_aff), 
+                                  pet_vol.shape, cval = pet_vol.min()) 
+  else:
+    output_affine = mr_affine.copy()
+    for i in range(3):  output_affine[i,:-1] *= training_voxsize[i]/np.sqrt((output_affine[i,:-1]**2).sum())
+
+  # create the output affine in RAS orientation to save niftis
+  output_affine_ras       = output_affine.copy()
+  output_affine_ras[0,-1] = (-1 * output_affine @ np.array([predicted_bow.shape[0]-1,0,0,1]))[0]
+  output_affine_ras[1,-1] = (-1 * output_affine @ np.array([0,predicted_bow.shape[1]-1,0,1]))[1]
+   
   #------------------------------------------------------------
   # write a simple nifti as fall back in case the dicoms are not working
   # keep in mind that nifti used RAS internally
@@ -310,21 +349,6 @@ def predict(mr_input             = '../../demo_data/Tim-Patient-65/t1_dcm/*.IMA'
                           **dcm_kwargs)
     print('\nWrote dicom folder:')
     print(odir,'\n')
-  #---  
-  
-  # write output pngs
-  pmax = np.percentile(pet_vol_mr_grid_1mm, 99.99)
-  mmax = np.percentile(mr_vol_1mm, 99.99)
-  imshow_kwargs = [{'cmap':py.cm.Greys_r, 'vmin':0, 'vmax':mmax},
-                   {'cmap':py.cm.Greys,   'vmin':0, 'vmax':pmax},
-                   {'cmap':py.cm.Greys,   'vmin':0, 'vmax':pmax}]
-
-  vi = ThreeAxisViewer([mr_vol_1mm, pet_vol_mr_grid_1mm, predicted_bow], 
-                       imshow_kwargs = imshow_kwargs, ls = '')
-  vi.fig.savefig(odir + '.png')
-  py.close(vi.fig)
-  py.close(vi.fig_cb)
-  py.close(vi.fig_sl)
 
   print('------------------------------------------')
   print('------------------------------------------')
