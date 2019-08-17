@@ -1,6 +1,12 @@
 # added by user
 data/*
 cnn_logs/*
+tmp/*
+scripts_bow/*.e5???????
+scripts_bow/*.o5???????
+scripts_bow/*.json
+scripts_bow/*.pbs
+
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
