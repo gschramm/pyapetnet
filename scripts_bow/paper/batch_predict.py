@@ -1,12 +1,12 @@
 import sys
-if not '..' in sys.path: sys.path.append('..')
+if not '../..' in sys.path: sys.path.append('../..')
 
 import os
 from pyapetnet.predictors import predict
 
 from glob import glob
 
-mdir  = '../data/test_data/mMR/Tim-Patients'
+mdir  = '../../data/test_data/mMR/Tim-Patients'
 pdirs = glob(os.path.join(mdir,'Tim-Patient-*'))
 
 model_dir  = '../data/trained_models'
