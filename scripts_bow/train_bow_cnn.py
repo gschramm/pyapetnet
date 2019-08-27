@@ -143,7 +143,7 @@ tensorboard = TensorBoard(log_dir                = tmp_logdir,
 csvlog    = CSVLogger(os.path.join(tmp_logdir,'log.csv'))
 
 # reduce learning rate by a factor of 2 if validation loss does not improve for 1000 epochs
-lr_reduce = ReduceLROnPlateau(monitor = 'val_loss', factor = 0.5, patience = 1000, 
+lr_reduce = ReduceLROnPlateau(monitor = 'val_loss', factor = 0.5, patience = 100, 
                               verbose = 1, min_lr = 1e-4) 
 
 #-----------------------------------------------------------------------------------------------
