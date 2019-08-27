@@ -5,6 +5,140 @@ from numba import prange, njit
 
 #---------------------------------------------------------------------------
 @njit(parallel = True)
+def nearest_neighbor_3d_0(array, zoom, cval = 0):
+  """Upsample a 3D array in the 0 (left-most) direction using the nearest neighbor
+
+  Parameters
+  ----------
+  array : 3D numpy array
+    array to be upsampled
+
+  zoom  : float > 1
+    zoom factor. a zoom factors of 2 means that the shape will double
+
+  cval : float, optional
+    constant value used for background 
+
+  Returns
+  -------
+  3D numpy array
+    the upsampled array
+  """
+  delta = 1./zoom
+
+  # number of elements in array with big voxels
+  nb,n1,n2 = array.shape
+
+  # number of elements in arrray with small voxels
+  ns = math.ceil(nb/delta)
+
+  new_array = np.zeros((ns,n1,n2), dtype = array.dtype)
+  if cval != 0: new_array += cval
+ 
+
+  for j in prange(n1):
+    for i in range(ns):
+      for k in range(n2):
+        # calculate the bin center of the small voxel array
+        # in coordinates in the big voxel array
+        ib_c = round(delta*(i - 0.5*ns + 0.5) + 0.5*nb - 0.5)
+
+        if (ib_c >= 0 and ib_c < nb):  
+          new_array[i,j,k] = array[ib_c,j,k]
+
+  return new_array
+
+#---------------------------------------------------------------------------
+
+@njit(parallel = True)
+def nearest_neighbor_3d_1(array, zoom, cval = 0):
+  """Upsample a 3D array in the 1 (middle) direction using nearest neighbor
+
+  Parameters
+  ----------
+  array : 3D numpy array
+    array to be upsampled
+
+  zoom  : float > 1
+    zoom factor. a zoom factors of 2 means that the shape will double
+
+  cval : float, optional
+    constant value used for background 
+
+  Returns
+  -------
+  3D numpy array
+    the upsampled array
+  """
+  delta = 1./zoom
+
+  # number of elements in array with big voxels
+  n0,nb,n2 = array.shape
+
+  # number of elements in arrray with small voxels
+  ns = math.ceil(nb/delta)
+
+  new_array = np.zeros((n0,ns,n2), dtype = array.dtype)
+  if cval != 0: new_array += cval
+
+  for i in prange(n0):
+    for j in range(ns):
+      for k in range(n2):
+        # calculate the bin center of the small voxel array
+        # in coordinates in the big voxel array
+        ib_c = round(delta*(j - 0.5*ns + 0.5) + 0.5*nb - 0.5)
+
+        if (ib_c >= 0) and (ib_c < nb):  
+          new_array[i,j,k] = array[i,ib_c,k]
+
+  return new_array
+
+#---------------------------------------------------------------------------
+@njit(parallel = True)
+def nearest_neighbor_3d_2(array, zoom, cval = 0):
+  """Upsample a 3D array in the 2 (right-most) direction using nearest neighbor
+
+  Parameters
+  ----------
+  array : 3D numpy array
+    array to be upsampled
+
+  zoom  : float > 1
+    zoom factor. a zoom factors of 2 means that the shape will double
+
+  cval : float, optional
+    constant value used for background 
+
+  Returns
+  -------
+  3D numpy array
+    the upsampled array
+  """
+  delta = 1./zoom
+
+  # number of elements in array with big voxels
+  n0,n1,nb = array.shape
+
+  # number of elements in arrray with small voxels
+  ns = math.ceil(nb/delta)
+
+  new_array = np.zeros((n0,n1,ns), dtype = array.dtype)
+  if cval != 0: new_array += cval
+
+  for i in prange(n0):
+    for j in range(n1):
+      for k in range(ns):
+        # calculate the bin center of the small voxel array
+        # in coordinates in the big voxel array
+        ib_c = round(delta*(k - 0.5*ns + 0.5) + 0.5*nb - 0.5)
+
+        if (ib_c >=0) and (ib_c < nb):  
+          new_array[i,j,k] = array[i,j,ib_c]
+
+  return new_array
+
+#---------------------------------------------------------------------------
+@njit(parallel = True)
 def upsample_3d_0(array, zoom, cval = 0):
   """Upsample a 3D array in the 0 (left-most) direction 
 
@@ -326,7 +460,7 @@ def downsample_3d_2(array, zoom, cval = 0):
 
 #---------------------------------------------------------------------------
 
-def zoom3d(vol, zoom, cval = 0):
+def zoom3d(vol, zoom, cval = 0, interpolate = True):
   """Zoom (upsample or downsample) a 3d array along all axis.
 
   Parameters
@@ -356,20 +490,26 @@ def zoom3d(vol, zoom, cval = 0):
   if not isinstance(zoom, (list, tuple, np.ndarray)):
     zoom = 3*[zoom]
 
-  if zoom[0] > 1:
-    vol = upsample_3d_0(vol, zoom[0], cval = cval)
-  elif zoom[0] < 1:
-    vol = downsample_3d_0(vol, zoom[0], cval = cval)
+  if interpolate:
+    if zoom[0] > 1:
+      vol = upsample_3d_0(vol, zoom[0], cval = cval)
+    elif zoom[0] < 1:
+      vol = downsample_3d_0(vol, zoom[0], cval = cval)
 
-  if zoom[1] > 1:
-    vol = upsample_3d_1(vol, zoom[1], cval = cval)
-  elif zoom[1] < 1:
-    vol = downsample_3d_1(vol, zoom[1], cval = cval)
+    if zoom[1] > 1:
+      vol = upsample_3d_1(vol, zoom[1], cval = cval)
+    elif zoom[1] < 1:
+      vol = downsample_3d_1(vol, zoom[1], cval = cval)
 
-  if zoom[2] > 1:
-    vol = upsample_3d_2(vol, zoom[2], cval = cval)
-  elif zoom[2] < 1:
-    vol = downsample_3d_2(vol, zoom[2], cval = cval)
+    if zoom[2] > 1:
+      vol = upsample_3d_2(vol, zoom[2], cval = cval)
+    elif zoom[2] < 1:
+      vol = downsample_3d_2(vol, zoom[2], cval = cval)
+  else:
+    vol = nearest_neighbor_3d_0(vol, zoom[0], cval = cval)
+    vol = nearest_neighbor_3d_1(vol, zoom[1], cval = cval)
+    vol = nearest_neighbor_3d_2(vol, zoom[2], cval = cval)
+ 
 
   return vol
 
