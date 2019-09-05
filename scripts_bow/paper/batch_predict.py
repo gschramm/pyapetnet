@@ -88,45 +88,42 @@ def predict_from_nii(pet_input,
 #==========================================================================================
 
 model_name = sys.argv[1]
+dataset    = sys.argv[2]
+osem_sdir  = sys.argv[3]
+osem_file  = sys.argv[4]
 
-osem_sdir = '20_min'
 mr_file   = 'aligned_t1.nii'
 
-for dataset in ['mmr-fdg','signa-pe2i','signa-fet']:
-  if dataset == 'mmr-fdg':
-    mdir      = '../../data/test_data/mMR/Tim-Patients'
-    pdirs     = glob(os.path.join(mdir,'Tim-Patient-*'))
-    osem_file = 'osem_psf_3_4.nii'
-  elif dataset == 'signa-pe2i':
-    mdir      = '../../data/test_data/signa/signa-pe2i'
-    pdirs     = glob(os.path.join(mdir,'ANON????'))
-    osem_file = 'osem_psf_4_5.nii'
-  elif dataset == 'signa-fet':
-    mdir      = '../../data/test_data/signa/signa-fet'
-    pdirs     = glob(os.path.join(mdir,'ANON????'))
-    osem_file = 'osem_psf_4_5.nii'
-  elif dataset == 'signa-fdg':
-    mdir      = '../../data/test_data/signa/signa-fdg'
-    pdirs     = glob(os.path.join(mdir,'?-?'))
-    osem_file = 'osem_psf_4_5.nii'
-  
-  for pdir in pdirs:
-    print(pdir)
-  
-    output_dir = os.path.join(pdir,'predictions',osem_sdir)
-  
-    if not os.path.exists(output_dir):
-      os.makedirs(output_dir)
-  
-    output_file = os.path.join(output_dir, '___'.join([os.path.splitext(model_name)[0],osem_file]))
-  
-    if not os.path.exists(output_file):
-      pred = predict_from_nii(os.path.join(pdir,osem_sdir,osem_file),
-                              os.path.join(pdir,mr_file),
-                              model_name,
-                              output_file)
-    else:
-      print(output_file,' already exists.')
-   
+if dataset == 'mmr-fdg':
+  mdir      = '../../data/test_data/mMR/Tim-Patients'
+  pdirs     = glob(os.path.join(mdir,'Tim-Patient-*'))
+elif dataset == 'signa-pe2i':
+  mdir      = '../../data/test_data/signa/signa-pe2i'
+  pdirs     = glob(os.path.join(mdir,'ANON????'))
+elif dataset == 'signa-fet':
+  mdir      = '../../data/test_data/signa/signa-fet'
+  pdirs     = glob(os.path.join(mdir,'ANON????'))
+elif dataset == 'signa-fdg':
+  mdir      = '../../data/test_data/signa/signa-fdg'
+  pdirs     = glob(os.path.join(mdir,'?-?'))
+
+for pdir in pdirs:
+  print(pdir)
+
+  output_dir = os.path.join(pdir,'predictions',osem_sdir)
+
+  if not os.path.exists(output_dir):
+    os.makedirs(output_dir)
+
+  output_file = os.path.join(output_dir, '___'.join([os.path.splitext(model_name)[0],osem_file]))
+
+  if not os.path.exists(output_file):
+    pred = predict_from_nii(os.path.join(pdir,osem_sdir,osem_file),
+                            os.path.join(pdir,mr_file),
+                            model_name,
+                            output_file)
+  else:
+    print(output_file,' already exists.')
+ 
 
 
