@@ -19,7 +19,7 @@ from .write_dicom         import write_3d_static_dicom
 
 import matplotlib as mpl
 if os.getenv('DISPLAY') is None: mpl.use('Agg')
-import matploblib.pyplot as py
+import matplotlib.pyplot as py
 
 # imports for old predictors
 from time import time

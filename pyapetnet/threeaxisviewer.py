@@ -1,7 +1,7 @@
 import os
 import matplotlib as mpl
 if os.getenv('DISPLAY') is None: mpl.use('Agg')
-import matploblib.pyplot as py
+import matplotlib.pyplot as py
 
 import numpy as np
 
