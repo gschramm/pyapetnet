@@ -25,13 +25,10 @@ Steps done by the predict() function from pyapetnet.predictors:
 (6) save the output (as nifti for nifti input, as nifti and dicom for dicom input)
 """
 
-pdir = os.path.join('..','data','demo_data','ANON1002')
-
-predict(mr_input      = os.path.join(pdir,'BRAVO_MR','*.img'),       # file pattern for high res MR input dicom files
-        pet_input     = os.path.join(pdir,'PT','*.img'),             # file pattern for low res PET input dicom files
-        input_format  = 'dicom',                                     # the input image format
-        odir          = os.path.join('..','data',
-                                     'demo_data','test_prediction'), # the directory for the output dicoms
+predict(mr_input      = 'my_mr.nii',                                 # the high res MR input nifti file
+        pet_input     = 'my_pet.nii',                                # the low res PET input nifti file
+        input_format  = 'nifti',                                     # the input image format
+        odir          = 'test_prediction',                           # the directory for the output dicoms
         model_name    = '190528_paper_bet_10_psf_mlem.h5',           # the file basename containing the 
                                                                      # trained CNN
         model_dir     = os.path.join('..','data','trained_models'),  # the directory where the CNN file sits
