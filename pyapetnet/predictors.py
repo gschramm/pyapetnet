@@ -1,7 +1,6 @@
 import numpy as np
 import os
 import nibabel as nib
-import pylab   as py
 import pydicom
 import h5py
 
@@ -18,12 +17,9 @@ from .rigid_registration  import regis_cost_func, neg_mutual_information
 from .aff_transform       import aff_transform, kul_aff
 from .write_dicom         import write_3d_static_dicom
 
-if os.getenv('DISPLAY') is not None:
-  import pylab as py
-else:
-  import matplotlib as mpl
-  mpl.use('Agg')
-  import matplotlib.pyplot as py
+import matplotlib as mpl
+if os.getenv('DISPLAY') is None: mpl.use('Agg')
+import matploblib.pyplot as py
 
 # imports for old predictors
 from time import time

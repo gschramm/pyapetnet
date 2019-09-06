@@ -6,8 +6,12 @@ import nibabel as nib
 import numpy   as np
 import pandas  as pd
 import re
+
+import matplotlib as mpl
+if os.getenv('DISPLAY') is None: mpl.use('Agg')
+import matploblib.pyplot as py
+
 import seaborn as sns
-import pylab   as py
 import pickle
 
 from glob            import glob

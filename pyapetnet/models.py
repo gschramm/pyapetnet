@@ -1,11 +1,16 @@
+import os
+
 import keras
 from keras.models     import Sequential, Model
 from keras.layers     import Input, Conv3D, PReLU, BatchNormalization, Add, Concatenate
 from keras.utils      import plot_model
 
 import numpy as np
-import matplotlib.image as mpimg
-import pylab as py
+
+import matplotlib as mpl
+if os.getenv('DISPLAY') is None: mpl.use('Agg')
+import matploblib.pyplot as py
+import matplotlib.image  as mpimg
 
 from tempfile import NamedTemporaryFile
 
