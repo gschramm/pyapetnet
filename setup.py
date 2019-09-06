@@ -5,7 +5,8 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="pyapetnet",
-    version="0.1",
+    use_scm_version=True,
+    setup_requires=['setuptools_scm'],
     author="Georg Schramm",
     author_email="georg.schramm@kuleuven.be",
     description="A CNN to mimick anatomy guided PET reconstruction in image space",
