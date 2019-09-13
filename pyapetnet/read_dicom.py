@@ -6,6 +6,61 @@ import warnings
 
 import pydicom as dicom
 
+from warnings import warn
+
+#--------------------------------------------------------------
+def dicom_search(fnames, dcm_tags = [])
+  """get essential dicom information from a bunch of dicom files
+
+  Parameters
+  ----------
+  fnames : str or list
+    file name pattern or list of input files to parse
+
+  dcm_tags : list 
+    list of extra dicom tags to return
+
+  Returns
+  -------
+  list of dictionaries
+    containing SeriesDescription, PatientName, StudyDescription, AcquisitionDate, AcquisitionTime
+    for all dicom Series.
+    The decision which files belong together is based on the SeriesInstanceUID.
+  """
+
+  if not isinstance(fnames,list):
+   dcm_files = np.array(glob.glob(fnames))
+  else: 
+   dcm_files = np.array([x for x in fnames])
+  
+  dcm_hdrs = [dicom.read_file(x) for x in dcm_files]
+  
+  seriesInstanceUIDs = np.array([x.SeriesInstanceUID for x in dcm_hdrs])
+  
+  uniqueSeriesInstanceUIDs = np.unique(seriesInstanceUIDs)
+  
+  dcm_info = []
+  
+  for uniqueSeriesInstanceUID in uniqueSeriesInstanceUIDs:
+    inds = np.where(seriesInstanceUIDs == uniqueSeriesInstanceUID)
+    i0   = inds[0][0]
+  
+    data = {}
+    data['SeriesInstanceUID'] = uniqueSeriesInstanceUID
+    data['files']             = list(dcm_files[inds])
+  
+    for key in dcm_tags + ['SeriesDescription','PatientName','StudyDescription','AcquisitionDate','AcquisitionTime']:
+        try:
+          data[key] = getattr(dcm_hdrs[i0],key)
+        except AttributeError:
+          warn('Cannot copy tag ' + key)
+          data[key] = None
+      
+  
+    dcm_info.append(data)
+  
+  return dcm_info
+
 #--------------------------------------------------------------
 
 class DicomVolume:
