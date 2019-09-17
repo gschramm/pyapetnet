@@ -4,6 +4,7 @@ import nibabel as nib
 import pydicom
 import h5py
 
+from copy                  import deepcopy
 from warnings              import warn
 from glob                  import glob
 from scipy.ndimage         import find_objects
@@ -55,7 +56,10 @@ def predict(pet_input,
   
   if affine is None:
     if input_format == 'dicom':
-      regis_affine_file = os.path.dirname(pet_input) + '_coreg_affine.txt'
+      if isinstance(pet_input, list):
+        regis_affine_file = os.path.dirname(pet_input[0]) + '_coreg_affine.txt'
+      else:
+        regis_affine_file = os.path.dirname(pet_input) + '_coreg_affine.txt'
     else:
       regis_affine_file = pet_input + '_coreg_affine.txt'
 
@@ -65,7 +69,12 @@ def predict(pet_input,
   # generate the output directory
   if odir is None:
     if input_format == 'dicom':
-      odir = os.path.join(os.path.dirname(os.path.dirname(pet_input)), 'cnn_bow_' + model_name.replace('.h5',''))
+      if isinstance(pet_input, list):
+        odir = os.path.join(os.path.dirname(os.path.dirname(pet_input[0])), 
+                            'cnn_bow_' + model_name.replace('.h5',''))
+      else:
+        odir = os.path.join(os.path.dirname(os.path.dirname(pet_input)), 
+                            'cnn_bow_' + model_name.replace('.h5',''))
     else:
       odir = os.path.join(os.path.dirname(pet_input), 'cnn_bow_' + model_name.replace('.h5',''))
   
@@ -83,7 +92,10 @@ def predict(pet_input,
   if input_format == 'dicom':
     # read the MR dicoms
     if verbose: print('\nreading MR dicoms')
-    mr_files   = glob(mr_input)
+    if isinstance(mr_input, list):
+      mr_files   = deepcopy(mr_input)
+    else:
+      mr_files   = glob(mr_input)
     mr_dcm     = DicomVolume(mr_files)
     mr_vol     = mr_dcm.get_data()
     mr_affine  = mr_dcm.affine
@@ -91,7 +103,10 @@ def predict(pet_input,
  
     # read the PET dicoms
     if verbose: print('\nreading PET dicoms')
-    pet_files  = glob(pet_input)
+    if isinstance(pet_input, list):
+      pet_files  = deepcopy(pet_input)
+    else:
+      pet_files  = glob(pet_input)
     pet_dcm    = DicomVolume(pet_files)
     pet_vol    = pet_dcm.get_data()
     pet_affine = pet_dcm.affine
