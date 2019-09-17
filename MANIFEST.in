@@ -1,1 +1,2 @@
 recursive-include demos *.py
+include pyapetnet/pet_dcm_tags_to_copy.txt
