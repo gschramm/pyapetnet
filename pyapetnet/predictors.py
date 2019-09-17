@@ -345,8 +345,37 @@ def predict(pet_input,
     refdcm = pydicom.read_file(pet_files[0])
     dcm_kwargs   = {}
     # copy the following tags if present in the reference dicom 
-    with open(os.path.join(os.path.dirname(__file__),'pet_dcm_tags_to_copy.txt'),'r') as f:
-      pet_keys_to_copy = f.read().splitlines()
+    pet_keys_to_copy = ['AcquisitionDate',
+                        'AcquisitionTime',
+                        'ActualFrameDuration',
+                        'AccessionNumber',
+                        'DecayCorrection',
+                        'DecayCorrectionDateTime',
+                        'DecayFactor',
+                        'DoseCalibrationFactor',
+                        'FrameOfReferenceUID',
+                        'FrameReferenceTime',
+                        'InstitutionName',
+                        'ManufacturerModelName',
+                        'OtherPatientIDs',
+                        'PatientAge',
+                        'PatientBirthDate',
+                        'PatientID',
+                        'PatientName',
+                        'PatientPosition',
+                        'PatientSex',
+                        'PatientWeight',
+                        'ProtocolName',
+                        'RadiopharmaceuticalInformationSequence',
+                        'RescaleType',
+                        'SeriesDate',
+                        'SeriesTime',
+                        'StudyDate',
+                        'StudyDescription',
+                        'StudyID',
+                        'StudyInstanceUID',
+                        'StudyTime',
+                        'Units']
     
     for key in pet_keys_to_copy:
       try:
