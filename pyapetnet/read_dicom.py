@@ -9,7 +9,7 @@ import pydicom as dicom
 from warnings import warn
 
 #--------------------------------------------------------------
-def dicom_search(fnames, dcm_tags = [])
+def dicom_search(fnames, dcm_tags = []):
   """get essential dicom information from a bunch of dicom files
 
   Parameters
@@ -18,7 +18,7 @@ def dicom_search(fnames, dcm_tags = [])
     file name pattern or list of input files to parse
 
   dcm_tags : list 
-    list of extra dicom tags to return
+    list of extra dicom tags to return on top of the default tags (see return)
 
   Returns
   -------
