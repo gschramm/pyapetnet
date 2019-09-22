@@ -7,7 +7,7 @@ import h5py
 from copy                  import deepcopy
 from warnings              import warn
 from glob                  import glob
-from scipy.ndimage         import find_objects
+from scipy.ndimage         import find_objects, gaussian_filter
 from scipy.optimize        import minimize
 
 from keras.models          import load_model
@@ -47,6 +47,7 @@ def predict(pet_input,
             patchsize            = (128,128,128),
             overlap              = 8,
             output_on_pet_grid   = False,
+            mr_ps_fwhm_mm        = None,
             debug_mode           = False):
 
   if seriesdesc is None:
@@ -125,12 +126,6 @@ def predict(pet_input,
     mr_affine[1,-1] = (-1 * mr_nii.affine @ np.array([0,mr_vol.shape[1]-1,0,1]))[1]
     mr_voxsize      = np.sqrt((mr_affine**2).sum(axis = 0))[:-1]
 
-    if crop_mr:
-      bbox              = find_objects(mr_vol > 0.1*mr_vol.max(), max_label = 1)[0]
-      mr_vol            = mr_vol[bbox]
-      crop_origin       = np.array([x.start for x in bbox] + [1])
-      mr_affine[:-1,-1] = (mr_affine @ crop_origin)[:-1]
-
     if verbose: print('\nreading PET nifti')
     pet_nii        = nib.load(pet_input)
     pet_nii        = nib.as_closest_canonical(pet_nii)
@@ -146,7 +141,19 @@ def predict(pet_input,
     pet_voxsize      = np.sqrt((pet_affine**2).sum(axis = 0))[:-1]
   else:
     raise TypeError('Unsupported input data format')
-    
+
+  # crop the MR if needed
+  if crop_mr:
+    bbox              = find_objects(mr_vol > 0.1*mr_vol.max(), max_label = 1)[0]
+    mr_vol            = mr_vol[bbox]
+    crop_origin       = np.array([x.start for x in bbox] + [1])
+    mr_affine[:-1,-1] = (mr_affine @ crop_origin)[:-1]
+
+  # post-smooth MR if needed
+  if mr_ps_fwhm_mm is not None:
+    print('post-smoothing MR with ' + str(mr_ps_fwhm_mm) + ' mm')
+    mr_vol = gaussian_filter(mr_vol, mr_ps_fwhm_mm / (2.35*mr_voxsize))
+
   # interpolate the PET image to the MR voxel grid
   if verbose: print('\ninterpolationg PET to MR grid')
 
@@ -229,7 +236,7 @@ def predict(pet_input,
   
   pet_max = np.percentile(pet_vol_mr_grid_interpolated, perc)
   pet_vol_mr_grid_interpolated /= pet_max
- 
+
   ############################
   # make the actual prediction
   ############################
