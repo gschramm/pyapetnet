@@ -288,18 +288,6 @@ def predict(pet_input,
   pet_vol_mr_grid_interpolated *= pet_max
   predicted_bow       *= pet_max
 
-  # safe the input volumes in case of debug mode 
-  if debug_mode: 
-    np.savez_compressed(odir + '_debug.npz', 
-                        mr_vol = mr_vol, 
-                        mr_vol_interpolated = mr_vol_interpolated,
-                        pet_vol = pet_vol,
-                        pet_vol_mr_grid_interpolated = pet_vol_mr_grid_interpolated,
-                        predicted_bow = predicted_bow,
-                        mr_affine = mr_affine, pet_affine = pet_affine,
-                        pet_mr_interp_aff = pet_mr_interp_aff,
-                        training_voxsize = training_voxsize)
-
   print('\n\n------------------------------------------')
   print('------------------------------------------')
   print('\nCNN prediction finished')
@@ -338,6 +326,11 @@ def predict(pet_input,
   output_affine_ras[0,-1] = (-1 * output_affine @ np.array([predicted_bow.shape[0]-1,0,0,1]))[0]
   output_affine_ras[1,-1] = (-1 * output_affine @ np.array([0,predicted_bow.shape[1]-1,0,1]))[1]
    
+  # safe the input volumes in case of debug mode 
+  if debug_mode: 
+    nib.save(nib.Nifti1Image(np.flip(np.flip(mr_vol_interpolated,0),1), output_affine_ras), odir + '_debug_mr.nii')
+    nib.save(nib.Nifti1Image(np.flip(np.flip(pet_vol_mr_grid_interpolated,0),1), output_affine_ras), odir + '_debug_pet.nii')
+
   #------------------------------------------------------------
   # write a simple nifti as fall back in case the dicoms are not working
   # keep in mind that nifti used RAS internally
