@@ -1,9 +1,16 @@
 import os
 
-import keras
-from keras.models     import Sequential, Model
-from keras.layers     import Input, Conv3D, PReLU, BatchNormalization, Add, Concatenate
-from keras.utils      import plot_model
+import tensorflow
+if tensorflow.__version__ >= '2':
+  from tensorflow.keras.initializers import RandomNormal
+  from tensorflow.keras.models       import Sequential, Model
+  from tensorflow.keras.layers       import Input, Conv3D, PReLU, BatchNormalization, Add, Concatenate
+  from tensorflow.keras.utils        import plot_model
+else:
+  from keras.initializers import RandomNormal
+  from keras.models       import Sequential, Model
+  from keras.layers       import Input, Conv3D, PReLU, BatchNormalization, Add, Concatenate
+  from keras.utils        import plot_model
 
 import numpy as np
 
@@ -70,8 +77,7 @@ def apetnet(n_ch               = 2,
 
   # individual paths
   if n_ind_layers > 0: 
-    init_val_ind = keras.initializers.RandomNormal(mean = 0.0, 
-                                                   stddev = np.sqrt(2/(np.prod(kernel_shape)*n_kernels_ind)))
+    init_val_ind = RandomNormal(mean = 0.0, stddev = np.sqrt(2/(np.prod(kernel_shape)*n_kernels_ind)))
 
     x1_list = [i for i in inputs] 
 
@@ -88,8 +94,7 @@ def apetnet(n_ch               = 2,
     x1 = Concatenate(name = 'concat_0')(inputs)
 
   # common path
-  init_val = keras.initializers.RandomNormal(mean = 0.0, 
-                                             stddev = np.sqrt(2/(np.prod(kernel_shape)*n_kernels_common)))
+  init_val = RandomNormal(mean = 0.0, stddev = np.sqrt(2/(np.prod(kernel_shape)*n_kernels_common)))
 
   for i in range(n_common_layers): 
     x1 = Conv3D(n_kernels_common, kernel_shape, padding = 'same', kernel_initializer = init_val,
@@ -98,7 +103,7 @@ def apetnet(n_ch               = 2,
   
   # layers that adds all features
   x1 = Conv3D(1, (1,1,1), padding='same', name = 'conv_111', 
-              kernel_initializer = keras.initializers.RandomNormal(mean = 0.0, stddev = np.sqrt(2)))(x1)
+              kernel_initializer = RandomNormal(mean = 0.0, stddev = np.sqrt(2)))(x1)
   
   if res_channels is not None:
     x1 = Add(name = 'add_0')([x1] + [inputs[i] for i in res_channels])

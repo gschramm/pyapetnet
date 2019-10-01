@@ -10,7 +10,11 @@ from glob                  import glob
 from scipy.ndimage         import find_objects, gaussian_filter
 from scipy.optimize        import minimize
 
-from keras.models          import load_model
+import tensorflow
+if tensorflow.__version__ >= '2':
+  from tensorflow.keras.models import load_model
+else:
+  from keras.models import load_model
 
 from .threeaxisviewer     import ThreeAxisViewer
 from .read_dicom          import DicomVolume
