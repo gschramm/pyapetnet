@@ -14,11 +14,19 @@ import tensorflow as tf
 from glob         import glob
 from datetime     import datetime
 
-from keras.optimizers      import Adam
-from keras.models          import load_model
-from keras.callbacks       import ModelCheckpoint, TensorBoard, CSVLogger, ReduceLROnPlateau
-from keras.utils.vis_utils import model_to_dot
-from keras.utils           import multi_gpu_model
+import tensorflow
+if tensorflow.__version__ >= '2':
+  from tensorflow.keras.optimizers import Adam
+  from tensorflow.keras.models     import load_model
+  from tensorflow.keras.callbacks  import ModelCheckpoint, TensorBoard, CSVLogger, ReduceLROnPlateau
+  from tensorflow.keras.utils      import model_to_dot
+  from tensorflow.keras.utils      import multi_gpu_model
+else: 
+  from keras.optimizers      import Adam
+  from keras.models          import load_model
+  from keras.callbacks       import ModelCheckpoint, TensorBoard, CSVLogger, ReduceLROnPlateau
+  from keras.utils.vis_utils import model_to_dot
+  from keras.utils           import multi_gpu_model
 
 from pyapetnet.generators import PatchSequence, petmr_brain_data_augmentation
 from pyapetnet.models     import apetnet

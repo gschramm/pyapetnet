@@ -11,7 +11,12 @@ from scipy.ndimage.filters       import gaussian_filter
 from scipy.ndimage.interpolation import shift, rotate
 from copy                        import deepcopy
 
-from keras.utils import Sequence
+import tensorflow
+if tensorflow.__version__ >= '2':
+  from tensorflow.keras.utils import Sequence
+else:
+  from keras.utils import Sequence
+
 from tempfile    import NamedTemporaryFile      
 
 from .utils              import affine_center_rotation

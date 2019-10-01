@@ -9,7 +9,13 @@ import numpy   as np
 
 from glob             import glob
 from pyapetnet.zoom3d import zoom3d
-from keras.models     import load_model
+
+import tensorflow
+if tensorflow.__version__ >= '2':
+  from tensorflow.keras.models import load_model
+else:
+  from keras.models import load_model
+
 from scipy.ndimage    import find_objects
 
 #==========================================================================================

@@ -11,7 +11,11 @@ import os
 from glob     import glob
 from datetime import datetime
 
-from keras.optimizers      import Adam
+import tensorflow
+if tensorflow.__version__ >= '2':
+  from tensorflow.keras.optimizers import Adam
+else:
+  from keras.optimizers import Adam
 
 from pyapetnet.generators import PatchSequence, petmr_brain_data_augmentation
 from pyapetnet.models     import apetnet
@@ -36,9 +40,7 @@ parser.add_argument('--dir_pattern',
                     default = os.path.join('..','data','training_data','brainweb','subject??'), 
                     help = 'dir pattern of input images')
 
-parser.add_argument('--mlem_file',     default = 'ch-000.nii.gz', help = 'name of mlem file')
-parser.add_argument('--mr_file',       default = 'ch-001.nii.gz', help = 'name of mr file')
-parser.add_argument('--bow_file',      default = 'target.nii.gz', help = 'name of target bowsher file')
+parser.add_argument('--mr_file',       default = 't1.nii',        help = 'name of mr file')
 
 args = parser.parse_args()
 
@@ -51,9 +53,7 @@ batch_size      = args.batch_size       # batch size in training
 train_sl        = slice(0,args.n_train,None) # data sets used in training
 patch_size      = (args.patch_size,)*3       # patch size for training batches
 dir_pattern     = args.dir_pattern
-mlem_file       = args.mlem_file
 mr_file         = args.mr_file  
-bow_file        = args.bow_file 
 
 #------------------------------------------------------------------------------------------------
 # set up the list of file names and the PatchSequences
@@ -64,8 +64,9 @@ input_fnames  = []
 target_fnames = []
 
 for pdir in pdirs[train_sl]:
-  input_fnames.append([os.path.join(pdir, mlem_file),os.path.join(pdir, mr_file)])
-  target_fnames.append(os.path.join(pdir, bow_file))
+  pstr = str(int(pdir.split('subject')[-1])*1000)
+  input_fnames.append([os.path.join(pdir, 'osem_psf_3_4_' + pstr + '.nii'),os.path.join(pdir, mr_file)])
+  target_fnames.append(os.path.join(pdir, 'pet_' + pstr + '.nii'))
 
 # this is the Sequence that we use for training
 ps = PatchSequence(input_fnames, target_fnames = target_fnames, batch_size = batch_size,
