@@ -46,6 +46,7 @@ To create a virtual conda environment execute
 
 which download and install all dependencies in a separte
 virual environment called ```py36-tf19-pyapetnet-cpu```.
+The .yml file shipped with pyapetnet.
 
 To test the installation of the virual environment, execute
 
@@ -77,5 +78,3 @@ To verify the installation you can execute
 ```conda list```
 
 and check whether pyapetnet is in the list of installed packages.
-
-

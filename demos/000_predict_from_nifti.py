@@ -25,18 +25,19 @@ Steps done by the predict() function from pyapetnet.predictors:
 (6) save the output (as nifti for nifti input, as nifti and dicom for dicom input)
 """
 
-predict(mr_input      = 'my_mr.nii',                                 # the high res MR input nifti file
-        pet_input     = 'my_pet.nii',                                # the low res PET input nifti file
+pdir = '/foo/bar'
+
+predict(mr_input      = os.path.join(pdir,'sim_t1.nii'),             # the input MR nifti file
+        pet_input     = os.path.join(pdir,'sim_osem.nii'),           # the input PET nifti file
         input_format  = 'nifti',                                     # the input image format
-        odir          = 'test_prediction',                           # the directory for the output dicoms
-        model_name    = '190528_paper_bet_10_psf_mlem.h5',           # the file basename containing the 
-                                                                     # trained CNN
-        model_dir     = os.path.join('..','data','trained_models'),  # the directory where the CNN file sits
+        odir          = os.path.join(pdir,'test_prediction'),        # the name of the output nifti (.nii is added)
+        model_name    = 'test_model.h5',                             # the file basename of the trained CNN
+        model_dir     = pdir,                                        # the directory where the CNN file sits
         perc          = 99.99,                                       # precentile used for data normalization
-        patchsize     = (128,128,128),                               # patchsize used in prediction
+        patchsize     = (64,64,64),                                  # patchsize used in prediction
         verbose       = True,                                        # print verbose output
         clip_neg      = True,                                        # clip negative values in output
-        coreg         = True,                                        # rigidly align the inputs using mutual inf.
+        coreg         = False,                                       # rigidly align the inputs using mutual inf.
         affine        = None,                                        # a file containing registration parameters
         crop_mr       = False,                                       # crop input volumes to the MR head contour 
         debug_mode    = False)                                       # debug mode saves some intermediate files
