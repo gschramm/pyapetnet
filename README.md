@@ -66,10 +66,12 @@ the pyapetnet package in ```mydir/pyapetnet```, execute
 
 ```cd mydir```
 
-```pip install pyapetnet/```
+```pip install -e pyapetnet/```
 
 which will install the pyapetnet package inside the virtual
 conda environment.
+Note that the ***-e*** is necesarry to pass the correct version
+number to pip.
 
 To verify the installation you can execute
 
