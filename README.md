@@ -40,33 +40,24 @@ which should list the installed basic python packages.
 
 ### Creation of the virtual conda environment
 
-To create a virtual conda environment execute
+To create a virtual conda python=3.6 environment execute
 
-```conda env create -f py36-tf19-pyapetnet-cpu.yml```
-
-which download and install all dependencies in a separte
-virual environment called ```py36-tf19-pyapetnet-cpu```.
-The .yml file shipped with pyapetnet.
+```conda create -n py36-tf19-pyapetnet-cpu python=3.6```
 
 To test the installation of the virual environment, execute
 
 ```conda activate py36-tf19-pyapetnet-cpu```
 
-```conda list```
-
-which should show all the installed packages (e.g. keras
-and tensorflow).
-
 ### Installation of the pyapetnet package
 
-Assuming that you have download / extracted the folder containing
-the pyapetnet package in ```mydir/pyapetnet```, execute
+Assuming that you have downloaded / extracted the package
+in ```mydir``` install the pyapetnet package via:
 
 ```conda activate py36-tf19-pyapetnet-cpu```
 
 ```cd mydir```
 
-```pip install -e pyapetnet/```
+```pip install -e .```
 
 which will install the pyapetnet package inside the virtual
 conda environment.
