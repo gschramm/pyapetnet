@@ -9,7 +9,7 @@ pkg_dir = os.path.abspath(os.path.dirname(__file__))
 # in case the package is not a git repo but rather a release
 # we try to get the fallback for package version from the dirname
 tmp_split = pkg_dir.split('pyapetnet-')
-if len(tmp_split) == 2:
+if len(tmp_split) >= 2:
   fall_back_version = pkg_dir.split('pyapetnet-')[-1]
 else:
   fall_back_version = 'unkown'
