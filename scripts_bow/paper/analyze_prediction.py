@@ -246,7 +246,7 @@ fig2.show()
 # make the data tables
 sum_data = pd.DataFrame()
 for metric in ['rc_mean','ssim']:
-  for stat in [pd.DataFrame.median, pd.DataFrame.std, pd.DataFrame.min, pd.DataFrame.max]:
+  for stat in [pd.DataFrame.mean, pd.DataFrame.std, pd.DataFrame.min, pd.DataFrame.max]:
     tmp = pd.DataFrame({(metric + ' ' + stat.__name__): reg_results.groupby(['tracer','region']).apply(stat)[metric]})
     sum_data = pd.concat([sum_data, tmp], axis = 1)
 
