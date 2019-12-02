@@ -112,6 +112,9 @@ elif dataset == 'signa-fet':
 elif dataset == 'signa-fdg':
   mdir      = '../../data/test_data/signa/signa-fdg'
   pdirs     = glob(os.path.join(mdir,'?-?'))
+elif dataset == 'signa-amyloid':
+  mdir      = '../../data/test_data/signa/signa-amyloid'
+  pdirs     = glob(os.path.join(mdir,'ANON???'))
 
 for pdir in pdirs:
   print(pdir)
