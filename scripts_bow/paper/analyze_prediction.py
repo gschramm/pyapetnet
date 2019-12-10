@@ -221,11 +221,28 @@ reg_results = reg_results.loc[(reg_results['region'] != 'other') &
 #---------------------------------------------------------------------------------
 # make plots
 
+order = ['frontal','temporal','occipital','parietal','hippocampus','cingulate','thalamus','basal ganglia',
+         'cerebellum','white matter', 'ventricle']
+
 fp = dict(marker = 'o', markerfacecolor = '0.3', markeredgewidth = 0, markersize = 2.5) 
 
 fig, ax = py.subplots(2,1, figsize = (12,6), sharex = True)
-sns.boxplot(x='region',  y ='rc_mean', data = reg_results, ax = ax[0], hue = 'tracer', flierprops = fp)
-sns.boxplot(x='region',  y ='ssim',    data = reg_results, ax = ax[1], hue = 'tracer', flierprops = fp)
+bplot1 = sns.boxplot(x='region',  y ='rc_mean', data = reg_results, ax = ax[0], hue = 'tracer', flierprops = fp,
+                     order = order)
+bplot2 = sns.boxplot(x='region',  y ='ssim',    data = reg_results, ax = ax[1], hue = 'tracer', flierprops = fp,
+                     order = order)
+
+# make better legend
+for plot in [bplot1, bplot2]:
+  handles, labels = plot.axes.get_legend_handles_labels()
+  plot.legend().remove()
+
+bplot1.legend(handles, labels, ncol=len(tracer), loc='upper center')
+bplot2.legend(handles, labels, ncol=len(tracer), loc='lower right')
+
+ax[0].set_ylabel('RC_mean')
+ax[1].set_ylabel('SSIM_mean')
+
 for axx in ax: 
   axx.set_xticklabels(axx.get_xticklabels(),rotation=15)
   axx.grid(ls = ':')
