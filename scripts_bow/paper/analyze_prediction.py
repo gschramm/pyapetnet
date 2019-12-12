@@ -68,33 +68,33 @@ def roi_to_region(roi):
   elif '3rd-Ventricle'             in roi: region = 'ventricle'
   elif '4th-Ventricle'             in roi: region = 'ventricle'
   elif '-Hippocampus'              in roi: region = 'hippocampus'
-  elif '-Amygdala'                 in roi: region = 'temporal'
-  elif '-Insula'                   in roi: region = 'temporal'
+  elif '-Amygdala'                 in roi: region = 'temporal cortex'
+  elif '-Insula'                   in roi: region = 'temporal cortex'
   elif '-Accumbens-area'           in roi: region = 'basal ganglia'
   elif roi == 'Unknown':                   region = 'background'
   elif bool(re.match(r'ctx-.*-corpuscallosum',roi)):   region = 'corpuscallosum'
-  elif bool(re.match(r'ctx-.*-cuneus',roi)):           region = 'occipital'
-  elif bool(re.match(r'ctx-.*-entorhinal',roi)):       region = 'temporal'
-  elif bool(re.match(r'ctx-.*-fusiform',roi)):         region = 'temporal'
-  elif bool(re.match(r'ctx-.*-paracentral',roi)):      region = 'frontal'
-  elif bool(re.match(r'ctx-.*-parsopercularis',roi)):  region = 'frontal'
-  elif bool(re.match(r'ctx-.*-parsorbitalis',roi)):    region = 'frontal'
-  elif bool(re.match(r'ctx-.*-parstriangularis',roi)): region = 'frontal'
-  elif bool(re.match(r'ctx-.*-pericalcarine',roi)):    region = 'occipital'
-  elif bool(re.match(r'ctx-.*-postcentral',roi)):      region = 'parietal'
-  elif bool(re.match(r'ctx-.*-precentral',roi)):       region = 'frontal'
-  elif bool(re.match(r'ctx-.*-precuneus',roi)):        region = 'parietal'
-  elif bool(re.match(r'ctx-.*-supramarginal',roi)):    region = 'parietal'
-  elif bool(re.match(r'ctx-.*-frontalpole',roi)):      region = 'frontal'
-  elif bool(re.match(r'ctx-.*-temporalpole',roi)):     region = 'temporal'
-  elif bool(re.match(r'ctx-.*-insula',roi)):           region = 'temporal'
-  elif bool(re.match(r'ctx-.*frontal',roi)):           region = 'frontal'
-  elif bool(re.match(r'ctx-.*parietal',roi)):          region = 'parietal'
-  elif bool(re.match(r'ctx-.*temporal',roi)):          region = 'temporal'
-  elif bool(re.match(r'ctx-.*cingulate',roi)):         region = 'cingulate'
-  elif bool(re.match(r'ctx-.*occipital',roi)):         region = 'occipital'
-  elif bool(re.match(r'ctx-.*lingual',roi)):           region = 'occipital'
-  elif bool(re.match(r'ctx-.*hippocampal',roi)):       region = 'temporal'
+  elif bool(re.match(r'ctx-.*-cuneus',roi)):           region = 'occipital cortex'
+  elif bool(re.match(r'ctx-.*-entorhinal',roi)):       region = 'temporal cortex'
+  elif bool(re.match(r'ctx-.*-fusiform',roi)):         region = 'temporal cortex'
+  elif bool(re.match(r'ctx-.*-paracentral',roi)):      region = 'frontal cortex'
+  elif bool(re.match(r'ctx-.*-parsopercularis',roi)):  region = 'frontal cortex'
+  elif bool(re.match(r'ctx-.*-parsorbitalis',roi)):    region = 'frontal cortex'
+  elif bool(re.match(r'ctx-.*-parstriangularis',roi)): region = 'frontal cortex'
+  elif bool(re.match(r'ctx-.*-pericalcarine',roi)):    region = 'occipital cortex'
+  elif bool(re.match(r'ctx-.*-postcentral',roi)):      region = 'parietal cortex'
+  elif bool(re.match(r'ctx-.*-precentral',roi)):       region = 'frontal cortex'
+  elif bool(re.match(r'ctx-.*-precuneus',roi)):        region = 'parietal cortex'
+  elif bool(re.match(r'ctx-.*-supramarginal',roi)):    region = 'parietal cortex'
+  elif bool(re.match(r'ctx-.*-frontalpole',roi)):      region = 'frontal cortex'
+  elif bool(re.match(r'ctx-.*-temporalpole',roi)):     region = 'temporal cortex'
+  elif bool(re.match(r'ctx-.*-insula',roi)):           region = 'temporal cortex'
+  elif bool(re.match(r'ctx-.*frontal',roi)):           region = 'frontal cortex'
+  elif bool(re.match(r'ctx-.*parietal',roi)):          region = 'parietal cortex'
+  elif bool(re.match(r'ctx-.*temporal',roi)):          region = 'temporal cortex'
+  elif bool(re.match(r'ctx-.*cingulate',roi)):         region = 'cingulate cortex'
+  elif bool(re.match(r'ctx-.*occipital',roi)):         region = 'occipital cortex'
+  elif bool(re.match(r'ctx-.*lingual',roi)):           region = 'occipital cortex'
+  elif bool(re.match(r'ctx-.*hippocampal',roi)):       region = 'temporal cortex'
   else:                                                region = 'other' 
 
   return region
@@ -221,8 +221,9 @@ reg_results = reg_results.loc[(reg_results['region'] != 'other') &
 #---------------------------------------------------------------------------------
 # make plots
 
-order = ['frontal','temporal','occipital','parietal','hippocampus','cingulate','thalamus','basal ganglia',
-         'cerebellum','white matter', 'ventricle']
+order = ['frontal cortex','temporal cortex','occipital cortex','parietal cortex',
+          'hippocampus','cingulate cortex','thalamus','basal ganglia',
+         'cerebellum','white matter','ventricle']
 
 fp = dict(marker = 'o', markerfacecolor = '0.3', markeredgewidth = 0, markersize = 2.5) 
 
