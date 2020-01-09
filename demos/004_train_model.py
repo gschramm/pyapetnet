@@ -29,8 +29,8 @@ from argparse import ArgumentParser
 
 parser = ArgumentParser(description = 'Train APETNET')
 
-parser.add_argument('--n_epochs',        default = 10,   help = 'number of epochs', type = int)
-parser.add_argument('--steps_per_epoch', default = 20,   help = 'steps per epoch', type = int)
+parser.add_argument('--n_epochs',        default = 5,    help = 'number of epochs', type = int)
+parser.add_argument('--steps_per_epoch', default = 10,   help = 'steps per epoch', type = int)
 parser.add_argument('--batch_size',      default = 30,   help = 'size of training mini batch', type = int)
 parser.add_argument('--n_train',         default = 5,    help = 'number of training data sets', type = int)
 parser.add_argument('--patch_size',      default = 19,   help = 'training patch size', type = int)
@@ -40,7 +40,7 @@ parser.add_argument('--dir_pattern',
                     default = os.path.join('..','data','training_data','brainweb','subject??'), 
                     help = 'dir pattern of input images')
 
-parser.add_argument('--mr_file',       default = 't1.nii',        help = 'name of mr file')
+parser.add_argument('--mr_file', default = 't1.nii',  help = 'name of mr file')
 
 args = parser.parse_args()
 
@@ -75,7 +75,13 @@ ps = PatchSequence(input_fnames, target_fnames = target_fnames, batch_size = bat
 #-----------------------------------------------------------------------------------------------
 # set up the model to train
 
-model = apetnet()
+model = apetnet(n_ch               = 2,        # number of input channels
+                n_ind_layers       = 1,        # number of individual layers
+                n_common_layers    = 7,        # number of common layers 
+                n_kernels_ind      = 15,       # number of features in ind. layers
+                n_kernels_common   = 30,       # number of features in common layers
+                kernel_shape       = (3,3,3))  # kernel shapes
+
 model.compile(optimizer = Adam(lr = args.learning_rate), loss = 'mse')
 
 #-----------------------------------------------------------------------------------------------
