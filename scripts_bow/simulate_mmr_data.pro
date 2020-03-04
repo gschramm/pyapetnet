@@ -1,3 +1,8 @@
+; before running this script the LD_LIBRARY_PATH has to contain the path to the correct python lib!
+; to do so execute (before starting IDL): 
+; (1) conda activate ZZZ  (where ZZZ is your desired conda env)
+; (2) export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${CONDA_PREFIX}/lib
+
 pixelsize  = 1.
 planesep   = 1.
 FOV_mm     = 256
