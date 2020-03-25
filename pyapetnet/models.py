@@ -4,12 +4,12 @@ import tensorflow
 if tensorflow.__version__ >= '2':
   from tensorflow.keras.initializers import RandomNormal
   from tensorflow.keras.models       import Sequential, Model
-  from tensorflow.keras.layers       import Input, Conv3D, PReLU, BatchNormalization, Add, Concatenate
+  from tensorflow.keras.layers       import Input, Conv3D, ReLU, PReLU, BatchNormalization, Add, Concatenate
   from tensorflow.keras.utils        import plot_model
 else:
   from keras.initializers import RandomNormal
   from keras.models       import Sequential, Model
-  from keras.layers       import Input, Conv3D, PReLU, BatchNormalization, Add, Concatenate
+  from keras.layers       import Input, Conv3D, ReLU, PReLU, BatchNormalization, Add, Concatenate
   from keras.utils        import plot_model
 
 import numpy as np
@@ -30,6 +30,7 @@ def apetnet(n_ch               = 2,
             n_kernels_common   = 30, 
             kernel_shape       = (3,3,3), 
             res_channels       = [0],
+            add_final_relu     = False,
             disp               = False):
   """
   Create CNN model for multiple inputs and one voxel-wise prediction channel
@@ -51,6 +52,8 @@ def apetnet(n_ch               = 2,
   |                   V                  
   ------------------>add
                       |
+                    (relu)
+                      |
                     output
  
   keyword arguments
@@ -69,7 +72,10 @@ def apetnet(n_ch               = 2,
   kernel_shape     ... (tuple) shape of kernels
 
   res_channels     ... (list) of channels to add to output of common layers
-     
+  
+  add_final_relu   ... (bool) add a final ReLU layer before output to make sure that
+                              output is non-negative
+
   disp             ... (bool) show the model
   """
   
@@ -107,6 +113,9 @@ def apetnet(n_ch               = 2,
   
   if res_channels is not None:
     x1 = Add(name = 'add_0')([x1] + [inputs[i] for i in res_channels])
+
+  if add_final_relu:
+    x1 = ReLU(name = 'final_relu')(x1)
   
   model  = Model(inputs = inputs, outputs = x1)
 
