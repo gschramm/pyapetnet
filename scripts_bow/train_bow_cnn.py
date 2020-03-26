@@ -15,6 +15,8 @@ from glob         import glob
 from datetime     import datetime
 
 import tensorflow
+from tensorflow.python.client import device_lib
+
 if tensorflow.__version__ >= '2':
   from tensorflow.keras.optimizers import Adam
   from tensorflow.keras.models     import load_model
@@ -114,19 +116,24 @@ output_model_file = os.path.join(tmp_logdir, 'trained_model.h5')
 #-----------------------------------------------------------------------------------------------
 # set up the model to train
 
-# define not parallized model on CPU
-with tf.device('/cpu:0'):
-  model = apetnet(**model_kwargs)
+n_gpus = len([x for x in device_lib.list_local_devices() if x.device_type == 'GPU'])
 
-parallel_model = multi_gpu_model(model, gpus = 4, cpu_merge = False)
+if n_gpus >= 2:
+  # define not parallized model on CPU
+  with tf.device('/cpu:0'):
+    model = apetnet(**model_kwargs)
+  
+  parallel_model = multi_gpu_model(model, gpus = n_gpus, cpu_merge = False)
+else:
+  parallel_model = apetnet(**model_kwargs)
 
 parallel_model.compile(optimizer = Adam(lr = learning_rate), loss = 'mse')
 
 # plot the model as svg - only works if we have an X display
-if has_x_disp:
-  with open(os.path.join(tmp_logdir, 'model_graph.svg'),'w') as ff:
-    print("{}".format(model_to_dot(model, show_shapes = True).create(prog='dot', format='svg').decode("utf-8")), 
-          file = ff)
+#if has_x_disp:
+#  with open(os.path.join(tmp_logdir, 'model_graph.svg'),'w') as ff:
+#    print("{}".format(model_to_dot(model, show_shapes = True).create(prog='dot', format='svg').decode("utf-8")), 
+#          file = ff)
 
 #----------------------------------------------------------------------------------------------
 # define the keras call backs
@@ -194,12 +201,12 @@ with h5py.File(output_model_file) as hf:
   hf['header/steps_per_epochs'] = steps_per_epoch
   hf['header/internal_voxsize'] = internal_voxsize
 
-#-----------------------------------------------------------------------------------------------
-# show final prediction of validation data
-if has_x_disp:
-  from pyapetnet.threeaxisviewer import ThreeAxisViewer
-  p = model.predict(validation_data[0])
-
-  imshow_kwargs = {'vmin':0, 'vmax':1.2}
-  vi = ThreeAxisViewer([validation_data[0][0].squeeze(),p.squeeze(),validation_data[1].squeeze()], 
-                        imshow_kwargs = imshow_kwargs)
+##-----------------------------------------------------------------------------------------------
+## show final prediction of validation data
+#if has_x_disp:
+#  from pyapetnet.threeaxisviewer import ThreeAxisViewer
+#  p = model.predict(validation_data[0])
+#
+#  imshow_kwargs = {'vmin':0, 'vmax':1.2}
+#  vi = ThreeAxisViewer([validation_data[0][0].squeeze(),p.squeeze(),validation_data[1].squeeze()], 
+#                        imshow_kwargs = imshow_kwargs)
