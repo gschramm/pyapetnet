@@ -32,6 +32,7 @@ else:
 
 from pyapetnet.generators import PatchSequence, petmr_brain_data_augmentation
 from pyapetnet.models     import apetnet
+from pyapetnet.losses     import ssim_3d_loss
 
 np.random.seed(42)
 
@@ -67,6 +68,7 @@ data_aug_kwargs  = cfg['data_aug_kwargs']
 output_suffix    = cfg['output_suffix']
 masterlogdir     = cfg['masterlogdir'] 
 internal_voxsize = cfg['internal_voxsize']*np.ones(3) # internal voxsize (mm)
+loss             = cfg['loss'] 
 
 input_fnames      = []
 target_fnames     = []
@@ -127,7 +129,10 @@ if n_gpus >= 2:
 else:
   parallel_model = apetnet(**model_kwargs)
 
-parallel_model.compile(optimizer = Adam(lr = learning_rate), loss = 'mse')
+if loss == 'ssim':
+  loss = ssim_3d_loss
+
+parallel_model.compile(optimizer = Adam(lr = learning_rate), loss = loss)
 
 # plot the model as svg - only works if we have an X display
 #if has_x_disp:
@@ -201,12 +206,12 @@ with h5py.File(output_model_file) as hf:
   hf['header/steps_per_epochs'] = steps_per_epoch
   hf['header/internal_voxsize'] = internal_voxsize
 
-##-----------------------------------------------------------------------------------------------
-## show final prediction of validation data
-#if has_x_disp:
-#  from pyapetnet.threeaxisviewer import ThreeAxisViewer
-#  p = model.predict(validation_data[0])
-#
-#  imshow_kwargs = {'vmin':0, 'vmax':1.2}
-#  vi = ThreeAxisViewer([validation_data[0][0].squeeze(),p.squeeze(),validation_data[1].squeeze()], 
-#                        imshow_kwargs = imshow_kwargs)
+#-----------------------------------------------------------------------------------------------
+# show final prediction of validation data
+if has_x_disp:
+  from pyapetnet.threeaxisviewer import ThreeAxisViewer
+  p = parallel_model.predict(validation_data[0])
+
+  imshow_kwargs = {'vmin':0, 'vmax':1.2}
+  vi = ThreeAxisViewer([validation_data[0][0].squeeze(),p.squeeze(),validation_data[1].squeeze()], 
+                        imshow_kwargs = imshow_kwargs)
