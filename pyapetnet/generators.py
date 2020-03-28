@@ -508,34 +508,30 @@ class PatchSequence(Sequence):
           target_batch[i,...] = tpatch
 
     return (input_batch, target_batch)
- 
+
+  #------------------------------------------------------------------
+   def get_input_vols_center_crop(self, crop_shape, offset):
+    """ get a center crop with shape crop_shape and offset from the input volumes """
+
+    input_batch  = [np.zeros((self.n_data_sets,) + crop_shape) for x in range(self.n_input_channels)]
+    target_batch = np.zeros((self.n_data_sets,) + crop_shape) 
+
+    for i in range(self.n_data_sets):
+      start = (np.array(self.input_vols[i][0].shape) // 2) - (np.array(crop_shape) // 2) + np.array(offset)
+      end   = start + np.array(crop_shape)
+      print(start)
+      print(end)
+      print('')
+
+      sl = [slice(start[x], end[x]) for x in range(start.shape[0])]
+
+      for j in range(self.n_input_channels):
+        input_batch[j][i,...] = self.input_vols[i][j][tuple(sl)]
+
+      target_batch[i,...] = self.target_vols[i][tuple(sl)]
+
+    return (input_batch, target_batch)
+
   #------------------------------------------------------------------
   #def on_epoch_end(self):
   #  print('epoch end')
-
-##---------------------------------------------------------------------------
-##---------------------------------------------------------------------------
-##---------------------------------------------------------------------------
-#if __name__ == "__main__":
-#
-#  import os
-#  np.random.seed(42)
-#
-#  sdirs = ['../../training_data/mMR/Tim-Patients/Tim-Patient-02_hq',
-#           '../../training_data/mMR/Tim-Patients/Tim-Patient-64_hq']
-#
-#  input_fnames  = []
-#  target_fnames = []
-# 
-#  for sdir in sdirs:
-#    input_fnames.append([os.path.join(sdir,'20_min','mlem_3_21.nii'),
-#                         os.path.join(sdir,'aligned_t1.nii')])
-#    target_fnames.append(os.path.join(sdir,'20_min','bow_bet_1.00E+01.nii'))
-#
-#  ps = PatchSequence(input_fnames, target_fnames = target_fnames, batch_size = 10, patch_size = (59,59,59),
-#                     preload_data = True, data_aug_func = petmr_brain_data_augmentation)
-#
-#
-#  a = ps.__getitem__(0, verbose = True)
-#  import pynucmed as ni
-#  vi = ni.viewer.ThreeAxisViewer([a[0][0].squeeze(),a[0][1].squeeze(),a[1].squeeze()])
