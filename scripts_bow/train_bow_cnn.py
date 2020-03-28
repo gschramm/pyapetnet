@@ -131,8 +131,11 @@ else:
 
 if loss == 'ssim':
   loss = ssim_3d_loss
+  metrics = []
+else:
+  metrics = [ssim_3d_loss]
 
-parallel_model.compile(optimizer = Adam(lr = learning_rate), loss = loss)
+parallel_model.compile(optimizer = Adam(lr = learning_rate), loss = loss, metrics = metrics)
 
 # plot the model as svg - only works if we have an X display
 #if has_x_disp:
