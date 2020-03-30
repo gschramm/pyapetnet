@@ -43,7 +43,7 @@ else:
 
 from pyapetnet.generators import PatchSequence, petmr_brain_data_augmentation
 from pyapetnet.models     import apetnet
-from pyapetnet.losses     import ssim_3d_loss
+from pyapetnet.losses     import ssim_3d_loss, mix_ssim_3d_mae_loss
 
 np.random.seed(42)
 
@@ -133,8 +133,11 @@ else:
   parallel_model = apetnet(**model_kwargs)
 
 if loss == 'ssim':
-  loss = ssim_3d_loss
+  loss    = ssim_3d_loss
   metrics = []
+elif loss == 'mix_ssim_mae':
+  loss    = mix_ssim_3d_mae_loss
+  metrics = [ssim_3d_loss]
 else:
   metrics = [ssim_3d_loss]
 
