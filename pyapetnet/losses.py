@@ -28,7 +28,7 @@ def tf_gauss_kernel_3d(sigma, size):
 
   return g
 
-def ssim_3d(x, y, sigma = 1.5, size = 11, L = None, K1 = 0.01, K2  = 0.03, return_image = False):
+def ssim_3d(x, y, sigma = 1.5, size = 11, L = 4, K1 = 0.01, K2  = 0.03, return_image = False):
   """ Compute the structural similarity between two batches of 3D single channel images
 
   Parameters
