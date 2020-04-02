@@ -2,8 +2,8 @@ import h5py
 import os
 import numpy as np
 import tensorflow as tf
+import tensorflow.keras as keras
 
-from tensorflow import keras
 from bow_generator import BOWSequence
 from apetnet2d import apetnet2d
 
@@ -17,17 +17,20 @@ except:
 import matplotlib.pyplot as py
 
 def ssim_loss(y_true, y_pred):
+  '''
+  Equal to 1 minus the ssim coefficient
+  '''
+  #calc dyn rage dr
+  dr = tf.math.reduce_max(y_true) - tf.math.reduce_min(y_true)
 
-    '''
-    Equal to 1 minus the ssim coefficient
-    '''
-    #calc dyn rage dr
+  return 1 - tf.image.ssim(y_true, y_pred, dr)
 
-    #dr = y_true.numpy().max()-y_true.numpy().min()
-    dr = tf.math.reduce_max(y_true) - tf.math.reduce_min(y_true)
-
-    return 1 - tf.image.ssim(y_true, y_pred, dr)
-
+def mix_ssim_mae_loss(y_true, y_pred, a = 0.5):
+  '''
+  Equal to a*(1 minus the ssim coefficient) - (1-a)*MAE
+  default of a is 0.5
+  '''
+  return a*ssim_loss(y_true, y_pred) + (1-a)*tf.reduce_mean(tf.abs(y_true - y_pred), axis = [1,2,3])
 
 #---------------------------------------------------------------------------------------------
 #--- parse command line for input arguments --------------------------------------------------
@@ -39,7 +42,8 @@ parser = argparse.ArgumentParser(description='BOW training')
 parser.add_argument('--batch_size',       default = 50,     type = int)
 parser.add_argument('--epochs',           default = 5,      type = int)
 parser.add_argument('--oname',            default = None,   type = str)
-parser.add_argument('--loss_fct',         default = 'ssim', type = str, choices = ('mse','ssim'))
+parser.add_argument('--loss_fct',         default = 'ssim', type = str, 
+                    choices = ('mae', 'mse','ssim', 'mix_ssim_mae'))
 parser.add_argument('--n_ind_layers',     default = 1,      type = int)
 parser.add_argument('--n_common_layers',  default = 7,      type = int)
 parser.add_argument('--n_kernels_ind',    default = 15,     type = int)
@@ -47,6 +51,8 @@ parser.add_argument('--n_kernels_common', default = 30,     type = int)
 parser.add_argument('--patch_size',       default = None,   type = int)
 parser.add_argument('--margin',           default = 0,      type = int)
 parser.add_argument('--add_final_relu',   action = 'store_true')
+
+args = parser.parse_args()
 
 batch_size       = args.batch_size
 epochs           = args.epochs
@@ -59,15 +65,13 @@ patch_size       = args.patch_size
 margin           = args.margin
 add_final_relu   = args.add_final_relu
 
-import pdb; pdb.set_trace()
-
 learning_rate = 1e-3
 lr_reduce_fac = 0.75
 lr_patience   = 10
 min_lr        = 1e-4
 loss_fct      = args.loss_fct
 
-
+#---------------------------------------------------------------------------------------------
 
 if oname is None:
   dt_str = datetime.now().strftime("%Y%d%m_%H%M%S")
@@ -169,10 +173,10 @@ bow_gen = BOWSequence(tr_osem, tr_t1, tr_bow, batch_size, patch_size = patch_siz
 #--- setup and train the model ---------------------------------------------------------------
 #---------------------------------------------------------------------------------------------
 
-if loss_fct == 'mse':
- loss = keras.losses.mse
-else:
+if loss_fct == 'ssim':
  loss = ssim_loss
+if loss_fct == 'mix_ssim_mae':
+ loss = mix_ssim_mae_loss
 
 model = apetnet2d(n_ch = 2, n_ind_layers = n_ind_layers, 
                   n_common_layers = n_common_layers, 
@@ -180,18 +184,15 @@ model = apetnet2d(n_ch = 2, n_ind_layers = n_ind_layers,
                   n_kernels_common = n_kernels_common,
                   add_final_relu = add_final_relu)
 
-
-
-
 model.compile(optimizer = keras.optimizers.Adam(learning_rate = learning_rate),
-              loss = loss, metrics = [ssim_loss])
-
+              loss = loss, metrics = [ssim_loss, mix_ssim_mae_loss, 'mse', 'mae'])
 
 # define a callback that reduces the learning rate
 reduce_lr = keras.callbacks.ReduceLROnPlateau(monitor  = 'val_loss',
                                               factor   = lr_reduce_fac,
                                               patience = lr_patience,
                                               min_lr   = min_lr)
+
 #-----------------------------------------------------------------
 # train the model
 
@@ -222,7 +223,3 @@ ax3.grid(ls = ':')
 fig3.tight_layout()
 fig3.savefig(oname.replace('.h5','_loss.png'))
 fig3.show()
-
-
-
-
