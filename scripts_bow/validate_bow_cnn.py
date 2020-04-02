@@ -47,7 +47,7 @@ else:
   from keras.utils.generic_utils import get_custom_objects
 
 from pyapetnet.generators import PatchSequence, petmr_brain_data_augmentation
-from pyapetnet.losses     import ssim_3d_loss
+from pyapetnet.losses     import ssim_3d_loss, mix_ssim_3d_mae_loss
 
 import matplotlib as mpl
 if os.getenv('DISPLAY') is None: mpl.use('Agg')
@@ -90,7 +90,9 @@ validation_data = val_ps.get_input_vols_center_crop(val_patch_size + (1,), (0,0,
 # load the model
 n_gpus = len([x for x in device_lib.list_local_devices() if x.device_type == 'GPU'])
 
-model = load_model(os.path.join(args.log_dir,'trained_model.h5'), custom_objects={"ssim_3d_loss": ssim_3d_loss})
+model = load_model(os.path.join(args.log_dir,'trained_model.h5'), 
+                   custom_objects={'ssim_3d_loss': ssim_3d_loss, 
+                                   'mix_ssim_3d_mae_loss': mix_ssim_3d_mae_loss})
 
 p = model.predict(validation_data[0])
 

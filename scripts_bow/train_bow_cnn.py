@@ -134,12 +134,10 @@ else:
 
 if loss == 'ssim':
   loss    = ssim_3d_loss
-  metrics = []
 elif loss == 'mix_ssim_mae':
   loss    = mix_ssim_3d_mae_loss
-  metrics = [ssim_3d_loss]
-else:
-  metrics = [ssim_3d_loss]
+
+metrics = [ssim_3d_loss, mix_ssim_3d_mae_loss, 'mse', 'mae']
 
 parallel_model.compile(optimizer = Adam(lr = learning_rate), loss = loss, metrics = metrics)
 
@@ -180,7 +178,7 @@ lr_reduce = ReduceLROnPlateau(monitor = 'val_loss', factor = 0.5, patience = 100
 parallel_model.fit_generator(ps, 
                              steps_per_epoch  = steps_per_epoch, 
                              epochs           = n_epochs, 
-                             verbose          = 1, 
+                             verbose          = 0, 
                              callbacks        = [checkpoint, tensorboard, csvlog, lr_reduce],
                              validation_data  = validation_data,
                              validation_steps = 1)
@@ -216,11 +214,11 @@ with h5py.File(output_model_file) as hf:
   hf['header/internal_voxsize'] = internal_voxsize
 
 #-----------------------------------------------------------------------------------------------
-# show final prediction of validation data
-if has_x_disp:
-  from pyapetnet.threeaxisviewer import ThreeAxisViewer
-  p = parallel_model.predict(validation_data[0])
-
-  imshow_kwargs = {'vmin':0, 'vmax':1.2}
-  vi = ThreeAxisViewer([validation_data[0][0].squeeze(),p.squeeze(),validation_data[1].squeeze()], 
-                        imshow_kwargs = imshow_kwargs)
+## show final prediction of validation data
+#if has_x_disp:
+#  from pyapetnet.threeaxisviewer import ThreeAxisViewer
+#  p = parallel_model.predict(validation_data[0])
+#
+#  imshow_kwargs = {'vmin':0, 'vmax':1.2}
+#  vi = ThreeAxisViewer([validation_data[0][0].squeeze(),p.squeeze(),validation_data[1].squeeze()], 
+#                        imshow_kwargs = imshow_kwargs)
