@@ -1,5 +1,10 @@
 import tensorflow as tf
 
+if tf.__version__ >= '2':
+  from tensorflow import keras
+else:
+  import keras
+
 def tf_gauss_kernel_3d(sigma, size):
   """Generate 3D Gaussian kernel 
   
@@ -28,7 +33,7 @@ def tf_gauss_kernel_3d(sigma, size):
 
   return g
 
-def ssim_3d(x, y, sigma = 1.5, size = 11, L = None, K1 = 0.01, K2  = 0.03, return_image = False):
+def ssim_3d(x, y, sigma = 1.5, size = 11, L = 4, K1 = 0.01, K2  = 0.03, return_image = False):
   """ Compute the structural similarity between two batches of 3D single channel images
 
   Parameters
@@ -38,7 +43,8 @@ def ssim_3d(x, y, sigma = 1.5, size = 11, L = None, K1 = 0.01, K2  = 0.03, retur
     containing a batch of 3D images with 1 channel
   L : float
     dynamic range of the images. 
-    By default (None) it is set to tf.reduce_max(y) - tf.reduce_min(y)
+    default is 4 (assuming normalized inputs
+    If None it is set to tf.reduce_max(x) - tf.reduce_min(x)
   K1, K2 : float
     small constants needed to avoid division by 0 see [1]. 
     Default 0.01, 0.03
@@ -72,7 +78,7 @@ def ssim_3d(x, y, sigma = 1.5, size = 11, L = None, K1 = 0.01, K2  = 0.03, retur
     raise ValueError('Last dimension of input x has to be 1')
 
   if L is None:
-      L = tf.reduce_max(y) - tf.reduce_min(y)
+    L = tf.reduce_max(x) - tf.reduce_min(x)
     
   C1 = (K1*L)**2
   C2 = (K2*L)**2
@@ -119,3 +125,6 @@ def ssim_3d_loss(x, y, **kwargs):
   tf_ssim_3d
   """
   return 1 - ssim_3d(x, y, **kwargs)
+
+def mix_ssim_3d_mae_loss(x,y, alpha = 0.5):
+  return alpha*ssim_3d_loss(x,y) + (1 - alpha)*tf.reduce_mean(keras.losses.mean_absolute_error(x,y), axis = [1,2,3])

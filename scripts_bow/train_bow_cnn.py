@@ -1,9 +1,20 @@
 import sys
 if not '..' in sys.path: sys.path.append('..')
+import os
+
+#------------------------------------------------------------------------------------------------
+# parse the command line
+
+from argparse import ArgumentParser
+
+parser = ArgumentParser(description = 'Train APETNET')
+parser.add_argument('--cfg_file', default = 'train_cfg.json',  help = 'training config file')
+
+args = parser.parse_args()
+#------------------------------------------------------------------------------------------------
 
 import pathlib
 import numpy as np
-import os
 import h5py
 import json
 import shutil
@@ -32,22 +43,12 @@ else:
 
 from pyapetnet.generators import PatchSequence, petmr_brain_data_augmentation
 from pyapetnet.models     import apetnet
-from pyapetnet.losses     import ssim_3d_loss
+from pyapetnet.losses     import ssim_3d_loss, mix_ssim_3d_mae_loss
 
 np.random.seed(42)
 
 # check if we have an X display
 has_x_disp = os.getenv('DISPLAY') is not None 
-
-#------------------------------------------------------------------------------------------------
-# parse the command line
-
-from argparse import ArgumentParser
-
-parser = ArgumentParser(description = 'Train APETNET')
-parser.add_argument('--cfg_file', default = 'train_cfg.json',  help = 'training config file')
-
-args = parser.parse_args()
 
 #------------------------------------------------------------------------------------------------
 
@@ -104,7 +105,7 @@ val_ps = PatchSequence(val_input_fnames, target_fnames = val_target_fnames,
 
 
 # for the validation we only use the first patch
-validation_data = val_ps.__getitem__(0)
+validation_data = val_ps.get_input_vols_center_crop(val_patch_size + (1,), (0,0,0,0))
 
 #-----------------------------------------------------------------------------------------------
 # set up the log dir
@@ -115,6 +116,8 @@ pathlib.Path(tmp_logdir).mkdir(exist_ok = True)
 checkpoint_path   = os.path.join(tmp_logdir, 'cnn_bow_check.h5')
 output_model_file = os.path.join(tmp_logdir, 'trained_model.h5')
 
+# copy the input config file to the logdir
+shutil.copyfile(args.cfg_file, os.path.join(tmp_logdir,'config.json'))
 #-----------------------------------------------------------------------------------------------
 # set up the model to train
 
@@ -130,14 +133,17 @@ else:
   parallel_model = apetnet(**model_kwargs)
 
 if loss == 'ssim':
-  loss = ssim_3d_loss
+  loss    = ssim_3d_loss
   metrics = []
+elif loss == 'mix_ssim_mae':
+  loss    = mix_ssim_3d_mae_loss
+  metrics = [ssim_3d_loss]
 else:
   metrics = [ssim_3d_loss]
 
 parallel_model.compile(optimizer = Adam(lr = learning_rate), loss = loss, metrics = metrics)
 
-# plot the model as svg - only works if we have an X display
+## plot the model as svg - only works if we have an X display
 #if has_x_disp:
 #  with open(os.path.join(tmp_logdir, 'model_graph.svg'),'w') as ff:
 #    print("{}".format(model_to_dot(model, show_shapes = True).create(prog='dot', format='svg').decode("utf-8")), 

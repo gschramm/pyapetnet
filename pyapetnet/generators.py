@@ -510,7 +510,7 @@ class PatchSequence(Sequence):
     return (input_batch, target_batch)
 
   #------------------------------------------------------------------
-   def get_input_vols_center_crop(self, crop_shape, offset):
+  def get_input_vols_center_crop(self, crop_shape, offset):
     """ get a center crop with shape crop_shape and offset from the input volumes """
 
     input_batch  = [np.zeros((self.n_data_sets,) + crop_shape) for x in range(self.n_input_channels)]
@@ -519,9 +519,6 @@ class PatchSequence(Sequence):
     for i in range(self.n_data_sets):
       start = (np.array(self.input_vols[i][0].shape) // 2) - (np.array(crop_shape) // 2) + np.array(offset)
       end   = start + np.array(crop_shape)
-      print(start)
-      print(end)
-      print('')
 
       sl = [slice(start[x], end[x]) for x in range(start.shape[0])]
 
