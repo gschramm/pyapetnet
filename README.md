@@ -54,7 +54,7 @@ in ```mydir/pyapetnet/``` install the pyapetnet package via:
 
 ```cd mydir``` 
 
-You should now nbe in the parent dir containing the pyapetnet
+You should now be in the parent dir containing the pyapetnet
 folder.
  
 For the CPU tensorflow version run:
