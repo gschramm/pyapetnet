@@ -16,9 +16,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 We recommend to use the anaconda python distribution and to create a
 conda virtual environment for pyapetnet.
-We also provide a conda .yml file that allows to easily
-create a conda environment containing all dependencies in the
-tested versions.
 
 The installation consists of three steps:
 1. Installation of anaconda (miniconda) python distribution
@@ -42,31 +39,36 @@ which should list the installed basic python packages.
 
 To create a virtual conda python=3.6 environment execute
 
-```conda create -n py36-tf19-pyapetnet-cpu python=3.6```
+```conda create -n pyapetnet python=3.6 ipython ```
 
 To test the installation of the virual environment, execute
 
-```conda activate py36-tf19-pyapetnet-cpu```
+```conda activate pyapetnet```
 
 ### Installation of the pyapetnet package
 
-Assuming that you have downloaded / extracted the package
-in ```mydir``` install the pyapetnet package via:
+Assuming that you have cloned / extracted the package
+in ```mydir/pyapetnet/``` install the pyapetnet package via:
 
-```conda activate py36-tf19-pyapetnet-cpu```
+```conda activate pyapetnet```
 
-```cd mydir```
+```cd mydir``` 
 
-```pip install -e .```
+You should now nbe in the parent dir containing the pyapetnet
+folder.
+ 
+For the CPU tensorflow version run:
+```pip install pyapetnet/[tf]```
+
+For the GPU tensorflow version run:
+```pip install pyapetnet/[tf-gpu]```
 
 which will install the pyapetnet package inside the virtual
 conda environment.
-Note that the ***-e*** is necesarry to pass the correct version
-number to pip.
 
 To verify the installation you can execute
 
-```conda activate py36-tf19-pyapetnet-cpu```
+```conda activate pyapetnet```
 
 ```conda list```
 
