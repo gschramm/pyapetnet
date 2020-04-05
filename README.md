@@ -47,21 +47,22 @@ To test the installation of the virual environment, execute
 
 ### Installation of the pyapetnet package
 
-Assuming that you have cloned / extracted the package
-in ```mydir/pyapetnet/``` install the pyapetnet package via:
+Assuming that you have downloadad / received the latest
+version of the pyapetnet package in a .zip archive pyapetnet-XX.zip
+and saved in ```mydir```
 
 ```conda activate pyapetnet```
 
 ```cd mydir``` 
 
 You should now be in the parent dir containing the pyapetnet
-folder.
+zip archive
  
 For the CPU tensorflow version run:
-```pip install pyapetnet/[tf]```
+```pip install pyapetnet-XX.zip/[tf]```
 
 For the GPU tensorflow version run:
-```pip install pyapetnet/[tf-gpu]```
+```pip install pyapetnet-XX.zip/[tf_gpu]```
 
 which will install the pyapetnet package inside the virtual
 conda environment.
