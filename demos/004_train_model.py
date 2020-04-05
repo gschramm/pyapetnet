@@ -2,9 +2,6 @@
 # It shows how to generate a PatchSequence object that takes care of of the data reading,
 # data preprocessing and batch sampling.
 
-import sys
-if not '..' in sys.path: sys.path.append('..')
-
 import numpy as np
 import os
 

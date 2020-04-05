@@ -1,11 +1,6 @@
 # this is a short demo on how to setup the PatchSequence that
 # we use for training Keras models
 
-from scipy.sparse import issparse
-
-import sys
-if not '..' in sys.path: sys.path.append('..')
-
 import numpy as np
 import os
 

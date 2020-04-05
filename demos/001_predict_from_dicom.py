@@ -1,5 +1,4 @@
-import sys, os
-if not '..' in sys.path: sys.path.append('..')
+import os
 
 from pyapetnet.predictors import predict
 

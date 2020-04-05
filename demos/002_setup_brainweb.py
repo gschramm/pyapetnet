@@ -7,9 +7,6 @@
 # into
 # '../data/training_data/brainweb/raw'
 
-import sys
-if not '..' in sys.path: sys.path.append('..')
-
 import nibabel as nib
 import numpy   as np
 import os
