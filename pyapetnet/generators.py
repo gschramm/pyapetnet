@@ -196,6 +196,7 @@ class PatchSequence(Sequence):
                order               = None,
                target_order        = 1,
                random_flip         = False,
+               concat_mode         = False,
                data_aug_func       = None,
                data_aug_kwargs     = {}):
     """
@@ -263,6 +264,10 @@ class PatchSequence(Sequence):
     target_order        ... (int) order of interpolation used when target volume is interpolated
                             default 1
 
+    concat_mode         ... (bool) if True than the output input batch is concatenated to a 
+                            "single channel" axis along axis 1. This is need in case only
+                            single channel input can be handled. default is False.
+
     data_aug_func       ... (function) to that is called at the end of each Keras epoch 
                                       this can be e.g. to augment the data
                                       default: petmr_brain_data_augmentation
@@ -281,6 +286,7 @@ class PatchSequence(Sequence):
     self.batch_size       = batch_size
     self.n_input_channels = len(input_fnames[0])
     self.patch_size       = patch_size
+    self.concat_mode      = concat_mode
 
     self.input_read_func  = input_read_func
     self.get_data_func    = get_data_func
@@ -507,6 +513,9 @@ class PatchSequence(Sequence):
         else:
           target_batch[i,...] = tpatch
 
+    if self.concat_mode:
+      input_batch = np.concatenate(input_batch, axis = 1)
+
     return (input_batch, target_batch)
 
   #------------------------------------------------------------------
@@ -526,6 +535,9 @@ class PatchSequence(Sequence):
         input_batch[j][i,...] = self.input_vols[i][j][tuple(sl)]
 
       target_batch[i,...] = self.target_vols[i][tuple(sl)]
+
+    if self.concat_mode:
+      input_batch = np.concatenate(input_batch, axis = 1)
 
     return (input_batch, target_batch)
 
