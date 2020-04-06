@@ -59,10 +59,10 @@ You should now be in the parent dir containing the pyapetnet
 zip archive
  
 For the CPU tensorflow version run:
-```pip install pyapetnet-XX.zip/[tf]```
+```pip install pyapetnet-XX.zip[tf]```
 
 For the GPU tensorflow version run:
-```pip install pyapetnet-XX.zip/[tf_gpu]```
+```pip install pyapetnet-XX.zip[tf_gpu]```
 
 which will install the pyapetnet package inside the virtual
 conda environment.
