@@ -131,79 +131,78 @@ def apetnet(n_ch               = 2,
 
 #------------------------------------------------------------------------------------------
 
-def apetnet_vv5(input_shape      = None,
-                n_ind_layers     = 1,
-                n_common_layers  = 7,
-                n_kernels_ind    = 15,
-                n_kernels_common = 30,
-                kernel_shape     = (3,3,3),
-                add_final_relu   = False,
-                debug            = False):
+def apetnet_vv5_onnx(input_tensor     = None,
+                     n_ind_layers     = 1,
+                     n_common_layers  = 7,
+                     n_kernels_ind    = 15,
+                     n_kernels_common = 30,
+                     kernel_shape     = (3,3,3),
+                     add_final_relu   = False,
+                     debug            = False):
+    """ Stacked single channel version of apetnet
         
-  # define input (3rd dimension contains stacked PET and MRI image)
-  if input_shape is not None:
-      ipt = Input(input_shape, name = 'input') 
-  else:
-      ipt = Input(shape = (32, 32, 64, 1), name = 'input')
+        For description of input parameters see apetnet
 
-  # extract pet and mri image
-  # - first image in order is pet
-  # the images are concatenated along the 1 axis
-  ipt_dim_z_crop = ipt.shape[3] // 2
-  mri_image = Cropping3D(cropping=((ipt_dim_z_crop,  0),(0, 0),(0, 0)), name = 'extract_mri')(ipt)    
-  pet_image = Cropping3D(cropping=(( 0, ipt_dim_z_crop),(0, 0),(0, 0)), name = 'extract_pet')(ipt)
-
-  # debug mode where we test only that "unstacking" of pet and mr input works as expected
-  if debug:
-    net = Concatenate(name = 'concat_0')([pet_image, mri_image])
-    
-  else:
-    # individual paths
-    if n_ind_layers > 0: 
-      init_val_ind = RandomNormal(mean = 0.0, stddev = np.sqrt(2/(np.prod(kernel_shape)*n_kernels_ind)))
-    
-      pet_image_ind = pet_image 
-      mri_image_ind = mri_image
-
-      for i in range(n_ind_layers): 
-        pet_image_ind = Conv3D(n_kernels_ind, kernel_shape, padding = 'same', 
-                               name = 'conv3d_pet_ind_' + str(i), 
-                               kernel_initializer = init_val_ind)(pet_image_ind)
-        pet_image_ind = PReLU(shared_axes=[1,2,3], name = 'prelu_pet_ind_' + str(i))(pet_image_ind)
-        mri_image_ind = Conv3D(n_kernels_ind, kernel_shape, padding = 'same', 
-                               name = 'conv3d_mri_ind_' + str(i), 
-                               kernel_initializer = init_val_ind)(mri_image_ind)
-        mri_image_ind = PReLU(shared_axes=[1,2,3], name = 'prelu_mri_ind_' + str(i))(mri_image_ind)
-      
-      # concatenate inputs
-      net = Concatenate(name = 'concat_0')([pet_image_ind, mri_image_ind])
-
+        The input_tensor argument is only used determine the input shape.
+        If None the input shape us set to (32,16,16,1).
+    """
+    # define input (stacked PET and MRI image)
+    if input_tensor is not None:
+        ipt = Input(input_tensor.shape[1:5], name = 'input') 
     else:
-      # concatenate inputs
-      net = Concatenate(name = 'concat_0')([pet_image, mri_image])
+        ipt = Input(shape = (32, 16, 16, 1), name = 'input')
 
-    # common path
-    init_val_common = RandomNormal(mean = 0.0, 
-                                   stddev = np.sqrt(2/(np.prod(kernel_shape)*n_kernels_common)))
-    
-    for i in range(n_common_layers): 
-      net = Conv3D(n_kernels_common, kernel_shape, padding = 'same', 
-                   name = 'conv3d_' + str(i), 
-                   kernel_initializer = init_val_common)(net)
-      net = PReLU(shared_axes=[1,2,3], name = 'prelu_' + str(i))(net)
-    
-    # layers that adds all features
-    net = Conv3D(1, (1,1,1), padding='valid', name = 'conv_final', 
-                 kernel_initializer = RandomNormal(mean = 0.0, stddev = np.sqrt(2)))(net)
-    
-    # add pet_image to prediction
-    net = Add(name = 'add_0')([net, pet_image])
+    # extract pet and mri image
+    # - first image in order is pet
+    ipt_dim_crop = ipt.shape[1] // 2
+    mri_image = Cropping3D(cropping=((ipt_dim_crop,  0), (0, 0), (0, 0)), name = 'extract_mri')(ipt)    
+    pet_image = Cropping3D(cropping=(( 0, ipt_dim_crop), (0, 0), (0, 0)), name = 'extract_pet')(ipt)
 
-    if add_final_relu:
-      x1 = ReLU(name = 'final_relu')(x1)
-    
-  # create model
-  model = Model(inputs=ipt, outputs=net)
+    # create the full model
+    if not debug:
+        # individual paths
+        if n_ind_layers > 0: 
+            init_val_ind = RandomNormal(mean = 0.0, stddev = np.sqrt(2/(np.prod(kernel_shape)*n_kernels_ind)))
+        
+            pet_image_ind = pet_image 
+            mri_image_ind = mri_image
 
-  # return the model
-  return model
+            for i in range(n_ind_layers): 
+                pet_image_ind = Conv3D(n_kernels_ind, kernel_shape, padding = 'same', name = 'conv3d_pet_ind_' + str(i), kernel_initializer = init_val_ind)(pet_image_ind)
+                pet_image_ind = PReLU(shared_axes=[1,2,3], name = 'prelu_pet_ind_' + str(i))(pet_image_ind)
+                mri_image_ind = Conv3D(n_kernels_ind, kernel_shape, padding = 'same', name = 'conv3d_mri_ind_' + str(i), kernel_initializer = init_val_ind)(mri_image_ind)
+                mri_image_ind = PReLU(shared_axes=[1,2,3], name = 'prelu_mri_ind_' + str(i))(mri_image_ind)
+            
+            # concatenate inputs
+            net = Concatenate(name = 'concat_0')([pet_image_ind, mri_image_ind])
+
+        else:
+            # concatenate inputs
+            net = Concatenate(name = 'concat_0')([pet_image, mri_image])
+
+        # common path
+        init_val_common = RandomNormal(mean = 0.0, stddev = np.sqrt(2/(np.prod(kernel_shape)*n_kernels_common)))
+        
+        for i in range(n_common_layers): 
+            net = Conv3D(n_kernels_common, kernel_shape, padding = 'same', name = 'conv3d_' + str(i), kernel_initializer = init_val_common)(net)
+            net = PReLU(shared_axes=[1,2,3], name = 'prelu_' + str(i))(net)
+       
+        # layers that adds all features
+        net = Conv3D(1, (1,1,1), padding='valid', name = 'conv_final', kernel_initializer = RandomNormal(mean = 0.0, stddev = np.sqrt(2)))(net)
+      
+        # add pet_image to prediction
+        net = Add(name = 'add_0')([net, pet_image])
+      
+        # ensure that output is non-negative
+        if add_final_relu:
+            net = ReLU(name = 'final_relu')(net)
+      
+    # in debug mode only add up pet and mri image  
+    else:    
+        net = Add(name = 'add_0')([pet_image, mri_image])
+      
+    # create model
+    model = Model(inputs=ipt, outputs=net)
+
+    # return the model
+    return model
