@@ -154,7 +154,7 @@ def apetnet_vv5_onnx(input_tensor     = None,
 
     # extract pet and mri image
     # - first image in order is pet
-    ipt_dim_crop = ipt.shape[1] // 2
+    ipt_dim_crop = int(ipt.shape[1] // 2)
     mri_image = Cropping3D(cropping=((ipt_dim_crop,  0), (0, 0), (0, 0)), name = 'extract_mri')(ipt)    
     pet_image = Cropping3D(cropping=(( 0, ipt_dim_crop), (0, 0), (0, 0)), name = 'extract_pet')(ipt)
 
@@ -199,7 +199,7 @@ def apetnet_vv5_onnx(input_tensor     = None,
       
     # in debug mode only add up pet and mri image  
     else:    
-        net = Add(name = 'add_0')([pet_image, mri_image])
+        net = Concatenate(name = 'add_0')([pet_image, mri_image])
       
     # create model
     model = Model(inputs=ipt, outputs=net)

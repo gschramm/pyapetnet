@@ -435,7 +435,7 @@ class PatchSequence(Sequence):
   def __len__(self): 
     # not sure why this is needed for a Keras Sequence
     # for random patch sampling it does not make sense
-    return int(np.ceil(self.n_data_sets / float(self.batch_size))) 
+    return 20*self.batch_size
 
   #------------------------------------------------------------------
   def __getitem__(self, idx, verbose = False):

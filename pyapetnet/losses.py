@@ -74,7 +74,10 @@ def ssim_3d(x, y, sigma = 1.5, size = 11, L = 4, K1 = 0.01, K2  = 0.03, return_i
   (2004). Image quality assessment: From error visibility to
   structural similarity. IEEE Transactions on Image Processing
   """
-  if (x.shape[-1] != 1) or (y.shape[-1] != 1):
+
+  # we have to test whether the last dimension is 1 or None
+  # when compiling the model it can be None and we should not throw an error
+  if ((x.shape[-1] is not None) and (x.shape[-1] != 1)) or ((y.shape[-1] is not None) and y.shape[-1] != 1):
     raise ValueError('Last dimension of input x has to be 1')
 
   if L is None:
