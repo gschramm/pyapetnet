@@ -146,33 +146,33 @@ for i, ph_fwhm in enumerate(ph_fwhms):
   py.close(fig)
 
 
-##----------------------------------------------------------------------------------------------
-## predict the validation data sets
-#
-#p = model.predict(validation_data[0])
-#
-##-----------------------------------------------------------------------------------------------
-## show final prediction of validation data
-#imshow_kwargs = {'vmin':0, 'vmax':1.2}
-#sl0, sl1, sl2 = [x//2 for x in p.shape[1:-1]]
-#
-#for i in range(len(val_input_fnames)):
-#  fig, ax = py.subplots(3,3, figsize = (7,7))
-#  ax[0,0].imshow(np.flip(validation_data[0][0][i,:,:,sl2,0].T,1),            cmap = py.cm.Greys,**imshow_kwargs)
-#  ax[0,1].imshow(np.flip(np.flip(validation_data[0][0][i,:,sl1,:,0].T,1),0), cmap = py.cm.Greys,**imshow_kwargs)
-#  ax[0,2].imshow(np.flip(np.flip(validation_data[0][0][i,sl0,:,:,0].T,1),0), cmap = py.cm.Greys,**imshow_kwargs)
-#  ax[1,0].imshow(np.flip(p[i,:,:,sl2,0].T,1),                                cmap = py.cm.Greys,**imshow_kwargs)
-#  ax[1,1].imshow(np.flip(np.flip(p[i,:,sl1,:,0].T,1),0),                     cmap = py.cm.Greys,**imshow_kwargs)
-#  ax[1,2].imshow(np.flip(np.flip(p[i,sl0,:,:,0].T,1),0),                     cmap = py.cm.Greys,**imshow_kwargs)
-#  ax[2,0].imshow(np.flip(validation_data[1][i,:,:,sl2,0].T,1),               cmap = py.cm.Greys,**imshow_kwargs)
-#  ax[2,1].imshow(np.flip(np.flip(validation_data[1][i,:,sl1,:,0].T,1),0),    cmap = py.cm.Greys,**imshow_kwargs)
-#  ax[2,2].imshow(np.flip(np.flip(validation_data[1][i,sl0,:,:,0].T,1),0),    cmap = py.cm.Greys,**imshow_kwargs)
-#
-#  fig.tight_layout()
-#  fig.savefig(os.path.join(args.log_dir,f'val_{i}.png'))
-#  py.close(fig)
-#
-#if args.interactive:
-#  from pyapetnet.threeaxisviewer import ThreeAxisViewer
-#  vi = ThreeAxisViewer([validation_data[0][0].squeeze(),p.squeeze(),validation_data[1].squeeze()], 
-#                        imshow_kwargs = imshow_kwargs)
+#----------------------------------------------------------------------------------------------
+# predict the validation data sets
+
+p = model.predict(validation_data[0])
+
+#-----------------------------------------------------------------------------------------------
+# show final prediction of validation data
+imshow_kwargs = {'vmin':0, 'vmax':1.2}
+sl0, sl1, sl2 = [x//2 for x in p.shape[1:-1]]
+
+for i in range(len(val_input_fnames)):
+  fig, ax = py.subplots(3,3, figsize = (7,7))
+  ax[0,0].imshow(np.flip(validation_data[0][0][i,:,:,sl2,0].T,1),            cmap = py.cm.Greys,**imshow_kwargs)
+  ax[0,1].imshow(np.flip(np.flip(validation_data[0][0][i,:,sl1,:,0].T,1),0), cmap = py.cm.Greys,**imshow_kwargs)
+  ax[0,2].imshow(np.flip(np.flip(validation_data[0][0][i,sl0,:,:,0].T,1),0), cmap = py.cm.Greys,**imshow_kwargs)
+  ax[1,0].imshow(np.flip(p[i,:,:,sl2,0].T,1),                                cmap = py.cm.Greys,**imshow_kwargs)
+  ax[1,1].imshow(np.flip(np.flip(p[i,:,sl1,:,0].T,1),0),                     cmap = py.cm.Greys,**imshow_kwargs)
+  ax[1,2].imshow(np.flip(np.flip(p[i,sl0,:,:,0].T,1),0),                     cmap = py.cm.Greys,**imshow_kwargs)
+  ax[2,0].imshow(np.flip(validation_data[1][i,:,:,sl2,0].T,1),               cmap = py.cm.Greys,**imshow_kwargs)
+  ax[2,1].imshow(np.flip(np.flip(validation_data[1][i,:,sl1,:,0].T,1),0),    cmap = py.cm.Greys,**imshow_kwargs)
+  ax[2,2].imshow(np.flip(np.flip(validation_data[1][i,sl0,:,:,0].T,1),0),    cmap = py.cm.Greys,**imshow_kwargs)
+
+  fig.tight_layout()
+  fig.savefig(os.path.join(args.log_dir,f'val_{i}.png'))
+  py.close(fig)
+
+if args.interactive:
+  from pyapetnet.threeaxisviewer import ThreeAxisViewer
+  vi = ThreeAxisViewer([validation_data[0][0].squeeze(),p.squeeze(),validation_data[1].squeeze()], 
+                        imshow_kwargs = imshow_kwargs)
