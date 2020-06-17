@@ -62,7 +62,6 @@ output_suffix    = cfg['output_suffix']
 masterlogdir     = cfg['masterlogdir'] 
 internal_voxsize = cfg['internal_voxsize']*np.ones(3) # internal voxsize (mm)
 loss             = cfg['loss'] 
-concat_mode      = cfg['concat_mode'] 
 
 input_fnames      = []
 target_fnames     = []
@@ -90,16 +89,11 @@ val_target_fnames = [val_target_fnames[x] for x in rvinds]
 ps = PatchSequence(input_fnames, target_fnames = target_fnames, batch_size = batch_size,
                    patch_size = patch_size, data_aug_func = petmr_brain_data_augmentation, 
                    data_aug_kwargs = data_aug_kwargs, random_flip = True,
-                   internal_voxsize = internal_voxsize, preload_data = True, concat_mode = concat_mode)
-
-if concat_mode and (patch_size != val_patch_size):
-  warnings.warn('In concat_mode patch size and val_patch size must be the same.')
-  warnings.warn('Setting val_patch_size to patch_size')
-  val_patch_size = patch_size
+                   internal_voxsize = internal_voxsize, preload_data = True)
 
 val_ps = PatchSequence(val_input_fnames, target_fnames = val_target_fnames, 
                        batch_size = batch_size, patch_size = val_patch_size,
-                       internal_voxsize = internal_voxsize, concat_mode = concat_mode)
+                       internal_voxsize = internal_voxsize)
 
 
 # for the validation we only use the first patch
@@ -111,8 +105,8 @@ pathlib.Path(masterlogdir).mkdir(exist_ok = True)
 time_str          = str(datetime.now())[:-7].replace(' ','_').replace(':','_')
 tmp_logdir        = os.path.join(masterlogdir, time_str + '_' + output_suffix)
 pathlib.Path(tmp_logdir).mkdir(exist_ok = True)
-checkpoint_path   = os.path.join(tmp_logdir, 'cnn_bow_check.h5')
-output_model_file = os.path.join(tmp_logdir, 'trained_model.h5')
+checkpoint_path   = os.path.join(tmp_logdir, 'cnn_bow_check')
+output_model_file = os.path.join(tmp_logdir, 'trained_model')
 
 # copy the input config file to the logdir
 shutil.copyfile(args.cfg_file, os.path.join(tmp_logdir,'config.json'))
@@ -124,18 +118,10 @@ n_gpus = len([x for x in device_lib.list_local_devices() if x.device_type == 'GP
 if n_gpus >= 2:
   # define not parallized model on CPU
   with tf.device('/cpu:0'):
-    if concat_mode:
-      model = apetnet_vv5_onnx(input_tensor = tensorflow.convert_to_tensor(validation_data[0]), 
-                               **model_kwargs)
-    else:
       model = apetnet(**model_kwargs)
   
   parallel_model = multi_gpu_model(model, gpus = n_gpus, cpu_merge = False)
 else:
-  if concat_mode:
-    parallel_model = apetnet_vv5_onnx(input_tensor = tensorflow.convert_to_tensor(validation_data[0]), 
-                                      **model_kwargs)
-  else:
     parallel_model = apetnet(**model_kwargs)
 
 if loss == 'ssim':
@@ -173,7 +159,11 @@ history = parallel_model.fit(x                = ps,
                              validation_data  = validation_data,
                              validation_steps = 1)
 
-shutil.copyfile(checkpoint_path, output_model_file)
+shutil.copytree(checkpoint_path, output_model_file)
+
+# to load model include custom loss functions!
+m = tf.keras.models.load_model(output_model_file, custom_objects={'ssim_3d_loss':ssim_3d_loss, 'mix_ssim_3d_mae_loss':mix_ssim_3d_mae_loss})
+
 #-----------------------------------------------------------------------------------------------
 # show final prediction of validation data
 if has_x_disp:

@@ -49,6 +49,8 @@ else:
 from pyapetnet.generators import PatchSequence, petmr_brain_data_augmentation
 from pyapetnet.losses     import ssim_3d_loss, mix_ssim_3d_mae_loss
 
+from scipy.ndimage import gaussian_filter
+
 import matplotlib as mpl
 if os.getenv('DISPLAY') is None: mpl.use('Agg')
 import matplotlib.pyplot as py
@@ -93,6 +95,59 @@ n_gpus = len([x for x in device_lib.list_local_devices() if x.device_type == 'GP
 model = load_model(os.path.join(args.log_dir,'trained_model.h5'), 
                    custom_objects={'ssim_3d_loss': ssim_3d_loss, 
                                    'mix_ssim_3d_mae_loss': mix_ssim_3d_mae_loss})
+
+#----------------------------------------------------------------------------------------------
+# predict a simplistic phantom
+
+x0 = (np.arange(149) - 149/2 + 0.5)*internal_voxsize[0]
+x1 = (np.arange(149) - 149/2 + 0.5)*internal_voxsize[1]
+x2 = (np.arange(149) - 149/2 + 0.5)*internal_voxsize[2]
+
+X0,X1,X2 = np.meshgrid(x0, x1, x2, indexing = 'ij')
+
+pet = np.zeros((149,149,149))
+pet[np.sqrt(X0**2 + X1**2 + X2**2) < 70] = 0.5
+pet[np.sqrt((X0-35)**2 + X1**2 + X2**2) < 10] = 1.
+pet[np.sqrt((X0+35)**2 + X1**2 + X2**2) < 10] = 0
+pet[np.sqrt(X0**2 + (X1-35)**2 + X2**2) < 5]  = 1.
+pet[np.sqrt(X0**2 + (X1+35)**2 + X2**2) < 5]  = 0
+
+mr  = (pet.max() - pet)**0.5
+
+ph_fwhms = [4.5,5,5.5,6]
+xp       = np.zeros((len(ph_fwhms),) + pet.shape)
+xm       = np.zeros((len(ph_fwhms),) + pet.shape)
+
+for i, ph_fwhm in enumerate(ph_fwhms):
+  xp[i,...] = gaussian_filter(pet, ph_fwhm / (2.35*internal_voxsize))
+  xm[i,...] = mr
+
+x = [np.expand_dims(xp,-1), np.expand_dims(xm,-1)]
+y = model.predict(x)
+
+# plot results
+imshow_kwargs = {'vmin':0, 'vmax':1.2}
+sl0, sl1, sl2 = [x//2 for x in y.shape[1:-1]]
+
+for i, ph_fwhm in enumerate(ph_fwhms):
+  fig, ax = py.subplots(3,3, figsize = (7,7))
+  ax[0,0].imshow(np.flip(x[0][i,:,:,sl2,0].T,1),            cmap = py.cm.Greys, **imshow_kwargs)
+  ax[0,1].imshow(np.flip(np.flip(x[0][i,:,sl1,:,0].T,1),0), cmap = py.cm.Greys, **imshow_kwargs)
+  ax[0,2].imshow(np.flip(np.flip(x[0][i,sl0,:,:,0].T,1),0), cmap = py.cm.Greys, **imshow_kwargs)
+  ax[1,0].imshow(np.flip(y[i,:,:,sl2,0].T,1),               cmap = py.cm.Greys, **imshow_kwargs)
+  ax[1,1].imshow(np.flip(np.flip(y[i,:,sl1,:,0].T,1),0),    cmap = py.cm.Greys, **imshow_kwargs)
+  ax[1,2].imshow(np.flip(np.flip(y[i,sl0,:,:,0].T,1),0),    cmap = py.cm.Greys, **imshow_kwargs)
+  ax[2,0].imshow(np.flip(x[1][i,:,:,sl2,0].T,1),            cmap = py.cm.Greys, **imshow_kwargs)
+  ax[2,1].imshow(np.flip(np.flip(x[1][i,:,sl1,:,0].T,1),0), cmap = py.cm.Greys, **imshow_kwargs)
+  ax[2,2].imshow(np.flip(np.flip(x[1][i,sl0,:,:,0].T,1),0), cmap = py.cm.Greys, **imshow_kwargs)
+  
+  fig.tight_layout()
+  fig.savefig(os.path.join(args.log_dir,f'val_phantom_{ph_fwhm}mm.png'))
+  py.close(fig)
+
+
+#----------------------------------------------------------------------------------------------
+# predict the validation data sets
 
 p = model.predict(validation_data[0])
 
