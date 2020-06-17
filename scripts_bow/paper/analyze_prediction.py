@@ -265,12 +265,14 @@ fig2.show()
 
 # make the data tables
 sum_data = pd.DataFrame()
+tmp = pd.DataFrame({('nvox' + ' ' + pd.DataFrame.mean.__name__): reg_results.groupby(['tracer','region']).apply(pd.DataFrame.mean)['nvox'].astype(int)})
+sum_data = pd.concat([sum_data, tmp], axis = 1)
 for metric in ['rc_mean','ssim']:
   for stat in [pd.DataFrame.mean, pd.DataFrame.std, pd.DataFrame.min, pd.DataFrame.max]:
     tmp = pd.DataFrame({(metric + ' ' + stat.__name__): reg_results.groupby(['tracer','region']).apply(stat)[metric]})
     sum_data = pd.concat([sum_data, tmp], axis = 1)
 
-sum_data.to_latex(os.path.join('figs',model_name.replace('.h5','.tex')), float_format = '{:,.2f}'.format) 
+sum_data.to_latex(os.path.join('figs',model_name.replace('.h5','.tex')), float_format = '{:,.3f}'.format) 
 
 
 
