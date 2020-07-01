@@ -34,14 +34,15 @@ def read_nii(fname):
 
 #------------------------------------------------------------------------------------------------------------
 def regional_statistics(vol, ref_vol, labelimg):
- 
-  _,ss_img = ssim(vol.astype(np.float32), ref_vol.astype(np.float32), full = True)
+
+  #_,ss_img = ssim(vol.astype(np.float32), ref_vol.astype(np.float32), full = True)
+  _,ss_img = ssim(vol.astype(np.float32), ref_vol.astype(np.float32), full = True, data_range = 2*ref_vol.max(),
+                   gaussian_weights = True)
 
   df = pd.DataFrame()
 
   for roinum in np.unique(labelimg):
     roiinds = np.where(labelimg == roinum)
-   
     x = vol[roiinds]
     y = ref_vol[roiinds]
 
@@ -49,10 +50,11 @@ def regional_statistics(vol, ref_vol, labelimg):
             'mean':    x.mean(), 
             'rc_mean': x.mean()/y.mean(), 
             'ssim':    ss_img[roiinds].mean(), 
-            'rmse':    np.sqrt(((x - y)**2).mean())/y.mean()}
+            'rmse':    np.sqrt(((x - y)**2).mean())/y.mean(),
+            'nvox':    len(roiinds[0])}
 
     df = df.append([data], ignore_index = True)
- 
+
   return df
 #------------------------------------------------------------------------------------------------------------
 def roi_to_region(roi):
@@ -119,7 +121,7 @@ osem_sdir  = args.osem_sdir
 osem_file  = args.osem_file
 bow_file   = args.bow_file
 
-model_dir  = '../data/trained_models'
+model_dir  = '../../data/trained_models'
 recompute  = False
 
 #------------------------------------------------------------------------------------------------------------
@@ -182,7 +184,7 @@ for tracer in tracers:
       df['roiname']  = df['roinum'].apply(lambda x: roilut[roilut.num == x].roi.to_string(index = False))
       df['region']   = df["roiname"].apply(roi_to_region)
       df['bow_file'] = bow_file
-      df             = df.reindex(columns=['subject','roinum','roiname','region','bow_file',
+      df             = df.reindex(columns=['subject','roinum','roiname','region','bow_file','nvox',
                                            'mean','rc_mean','rmse','ssim'])
    
       df.to_csv(df_file) 
@@ -263,12 +265,14 @@ fig2.show()
 
 # make the data tables
 sum_data = pd.DataFrame()
+tmp = pd.DataFrame({('nvox' + ' ' + pd.DataFrame.mean.__name__): reg_results.groupby(['tracer','region']).apply(pd.DataFrame.mean)['nvox'].astype(int)})
+sum_data = pd.concat([sum_data, tmp], axis = 1)
 for metric in ['rc_mean','ssim']:
   for stat in [pd.DataFrame.mean, pd.DataFrame.std, pd.DataFrame.min, pd.DataFrame.max]:
     tmp = pd.DataFrame({(metric + ' ' + stat.__name__): reg_results.groupby(['tracer','region']).apply(stat)[metric]})
     sum_data = pd.concat([sum_data, tmp], axis = 1)
 
-sum_data.to_latex(os.path.join('figs',model_name.replace('.h5','.tex')), float_format = '{:,.2f}'.format) 
+sum_data.to_latex(os.path.join('figs',model_name.replace('.h5','.tex')), float_format = '{:,.3f}'.format) 
 
 
 
