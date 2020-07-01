@@ -6,9 +6,11 @@ import pickle
 import h5py
 import nibabel as nib
 import numpy   as np
+import json
 
 from glob             import glob
 from pyapetnet.zoom3d import zoom3d
+from pyapetnet.losses import ssim_3d_loss, mix_ssim_3d_mae_loss
 
 import tensorflow
 if tensorflow.__version__ >= '2':
@@ -22,7 +24,7 @@ from scipy.ndimage    import find_objects
 def load_nii(fname):
   nii = nib.load(fname)
   nii = nib.as_closest_canonical(nii)
-  vol = nii.get_data()
+  vol = nii.get_fdata()
 
   return vol, nii.affine
 
@@ -35,9 +37,21 @@ def predict_from_nii(pet_input,
                      perc = 99.99):
 
   # load the model
-  with h5py.File(os.path.join(model_dir,model_name)) as model_data:
-    training_voxsize = model_data['header/internal_voxsize'][:] 
-  model            = load_model(os.path.join(model_dir,model_name))
+  # we have to check whether the model is in h5 or protobuf format
+  # in the h5 case, the internal voxsize is stored in the h5 file
+  # in the protobuf case we read it from the config file
+ 
+  if os.path.isdir(os.path.join(model_dir,model_name)):
+    with open(os.path.join(model_dir,model_name,'config.json')) as f:
+      cfg = json.load(f)
+      training_voxsize = cfg['internal_voxsize']*np.ones(3)
+  else:
+    with h5py.File(os.path.join(model_dir,model_name)) as model_data:
+      training_voxsize = model_data['header/internal_voxsize'][:] 
+
+  model = load_model(os.path.join(model_dir,model_name),
+                     custom_objects={'ssim_3d_loss': ssim_3d_loss, 
+                                     'mix_ssim_3d_mae_loss': mix_ssim_3d_mae_loss})
 
   # read the input data
   mr_vol, mr_affine = load_nii(mr_input)
