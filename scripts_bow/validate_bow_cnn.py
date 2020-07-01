@@ -92,9 +92,15 @@ validation_data = val_ps.get_input_vols_center_crop(val_patch_size + (1,), (0,0,
 # load the model
 n_gpus = len([x for x in device_lib.list_local_devices() if x.device_type == 'GPU'])
 
-model = load_model(os.path.join(args.log_dir,'trained_model.h5'), 
-                   custom_objects={'ssim_3d_loss': ssim_3d_loss, 
-                                   'mix_ssim_3d_mae_loss': mix_ssim_3d_mae_loss})
+# we have to test whether the model was saved in HDF5 or in protobuf
+if os.path.exists(os.path.join(args.log_dir,'trained_model.h5')):
+  model = load_model(os.path.join(args.log_dir,'trained_model.h5'), 
+                     custom_objects={'ssim_3d_loss': ssim_3d_loss, 
+                                     'mix_ssim_3d_mae_loss': mix_ssim_3d_mae_loss})
+elif os.path.exists(os.path.join(args.log_dir,'trained_model')):
+  model = load_model(os.path.join(args.log_dir,'trained_model'), 
+                     custom_objects={'ssim_3d_loss': ssim_3d_loss, 
+                                     'mix_ssim_3d_mae_loss': mix_ssim_3d_mae_loss})
 
 #----------------------------------------------------------------------------------------------
 # predict a simplistic phantom
