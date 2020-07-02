@@ -3,6 +3,7 @@ import os
 import nibabel as nib
 import pydicom
 import h5py
+import json
 
 from copy                  import deepcopy
 from warnings              import warn
@@ -52,6 +53,7 @@ def predict(pet_input,
             overlap              = 8,
             output_on_pet_grid   = False,
             mr_ps_fwhm_mm        = None,
+            model_custom_objects = None,
             debug_mode           = False):
 
   if seriesdesc is None:
@@ -91,7 +93,7 @@ def predict(pet_input,
     odir = odir + '_' + str(o_suf)
   
   # load the model
-  model = load_model(os.path.join(model_dir,model_name))
+  model = load_model(os.path.join(model_dir,model_name), custom_objects = model_custom_objects)
  
   # read the input data
   if input_format == 'dicom':
@@ -206,14 +208,19 @@ def predict(pet_input,
   #############################################################
 
   # read the internal voxel size that was used during training from the model header
-  model_data = h5py.File(os.path.join(model_dir,model_name))
-
-  if 'header/internal_voxsize' in model_data:
-    training_voxsize = model_data['header/internal_voxsize'][:] 
+  if os.path.isdir(os.path.join(model_dir,model_name)):
+    with open(os.path.join(model_dir,model_name,'config.json')) as f:
+      cfg = json.load(f)
+      training_voxsize = cfg['internal_voxsize']*np.ones(3)
   else:
-    # in the old models the training (internal) voxel size is not in the header
-    # but it was always 1x1x1 mm^3
-    training_voxsize = np.ones(3)
+    model_data = h5py.File(os.path.join(model_dir,model_name))
+
+    if 'header/internal_voxsize' in model_data:
+      training_voxsize = model_data['header/internal_voxsize'][:] 
+    else:
+      # in the old models the training (internal) voxel size is not in the header
+      # but it was always 1x1x1 mm^3
+      training_voxsize = np.ones(3)
     
   # interpolate both volumes to 1mm^3 voxels
   # this is needed because the model was trained on 1mm^3 voxels
