@@ -31,27 +31,12 @@ def load_nii(fname):
 #==========================================================================================
 def predict_from_nii(pet_input, 
                      mr_input, 
-                     model_name, 
+                     model,
+                     training_voxsize, 
                      output_file, 
-                     model_dir = os.path.join('..','..','data','trained_models'), 
                      perc = 99.99):
 
-  # load the model
-  # we have to check whether the model is in h5 or protobuf format
-  # in the h5 case, the internal voxsize is stored in the h5 file
-  # in the protobuf case we read it from the config file
- 
-  if os.path.isdir(os.path.join(model_dir,model_name)):
-    with open(os.path.join(model_dir,model_name,'config.json')) as f:
-      cfg = json.load(f)
-      training_voxsize = cfg['internal_voxsize']*np.ones(3)
-  else:
-    with h5py.File(os.path.join(model_dir,model_name)) as model_data:
-      training_voxsize = model_data['header/internal_voxsize'][:] 
-
-  model = load_model(os.path.join(model_dir,model_name),
-                     custom_objects={'ssim_3d_loss': ssim_3d_loss, 
-                                     'mix_ssim_3d_mae_loss': mix_ssim_3d_mae_loss})
+  
 
   # read the input data
   mr_vol, mr_affine = load_nii(mr_input)
@@ -82,6 +67,7 @@ def predict_from_nii(pet_input,
 
   # make the prediction
   x = [np.expand_dims(np.expand_dims(pet_vol_crop_interp,0),-1), np.expand_dims(np.expand_dims(mr_vol_crop_interp,0),-1)]
+
   pred = model.predict(x).squeeze() 
 
   # unnormalize the data
@@ -112,6 +98,7 @@ dataset    = sys.argv[2]
 osem_sdir  = sys.argv[3]
 osem_file  = sys.argv[4]
 
+model_dir = os.path.join('..','..','data','trained_models')
 mr_file   = 'aligned_t1.nii'
 
 if dataset == 'mmr-fdg':
@@ -130,6 +117,22 @@ elif dataset == 'signa-amyloid':
   mdir      = '../../data/test_data/signa/signa-amyloid'
   pdirs     = glob(os.path.join(mdir,'ANON???'))
 
+# load the model
+# we have to check whether the model is in h5 or protobuf format
+# in the h5 case, the internal voxsize is stored in the h5 file
+# in the protobuf case we read it from the config file
+
+if os.path.isdir(os.path.join(model_dir,model_name)):
+  with open(os.path.join(model_dir,model_name,'config.json')) as f:
+    cfg = json.load(f)
+    training_voxsize = cfg['internal_voxsize']*np.ones(3)
+else:
+  with h5py.File(os.path.join(model_dir,model_name)) as model_data:
+    training_voxsize = model_data['header/internal_voxsize'][:] 
+
+model = load_model(os.path.join(model_dir,model_name),
+                   custom_objects={'ssim_3d_loss': ssim_3d_loss, 
+                                     'mix_ssim_3d_mae_loss': mix_ssim_3d_mae_loss})
 for pdir in pdirs:
   print(pdir)
 
@@ -143,10 +146,8 @@ for pdir in pdirs:
   if not os.path.exists(output_file):
     pred = predict_from_nii(os.path.join(pdir,osem_sdir,osem_file),
                             os.path.join(pdir,mr_file),
-                            model_name,
+                            model,
+                            training_voxsize,
                             output_file)
   else:
     print(output_file,' already exists.')
- 
-
-
