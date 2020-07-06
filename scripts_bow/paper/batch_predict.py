@@ -9,7 +9,7 @@ import numpy   as np
 import json
 
 from glob             import glob
-from pyapetnet.zoom3d import zoom3d
+from scipy.ndimage import zoom
 from pyapetnet.losses import ssim_3d_loss, mix_ssim_3d_mae_loss
 
 import tensorflow
@@ -36,8 +36,6 @@ def predict_from_nii(pet_input,
                      output_file, 
                      perc = 99.99):
 
-  
-
   # read the input data
   mr_vol, mr_affine = load_nii(mr_input)
   mr_voxsize        = np.sqrt((mr_affine**2).sum(axis = 0))[:-1]
@@ -55,8 +53,8 @@ def predict_from_nii(pet_input,
 
   # interpolate the volumes to the internal voxelsize of the trained model 
   zoomfacs            = mr_voxsize / training_voxsize
-  mr_vol_crop_interp  = zoom3d(mr_vol_crop, zoomfacs)
-  pet_vol_crop_interp = zoom3d(pet_vol_crop, zoomfacs)
+  mr_vol_crop_interp  = zoom(mr_vol_crop, zoomfacs, order = 1, prefilter = False)
+  pet_vol_crop_interp = zoom(pet_vol_crop, zoomfacs, order = 1, prefilter = False)
 
   # normalize the input
   pmax = np.percentile(pet_vol_crop_interp, perc)
