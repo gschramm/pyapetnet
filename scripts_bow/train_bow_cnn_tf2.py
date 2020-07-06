@@ -160,6 +160,8 @@ history = parallel_model.fit(x                = ps,
                              validation_steps = 1)
 
 shutil.copytree(checkpoint_path, output_model_file)
+parallel_model.save(output_model_file + '_last')
+parallel_model.save(output_model_file + '_last.h5')
 
 # to load model include custom loss functions!
 m = tf.keras.models.load_model(output_model_file, custom_objects={'ssim_3d_loss':ssim_3d_loss, 'mix_ssim_3d_mae_loss':mix_ssim_3d_mae_loss})
