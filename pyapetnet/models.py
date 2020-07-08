@@ -31,6 +31,7 @@ def apetnet(n_ch               = 2,
             kernel_shape       = (3,3,3), 
             res_channels       = [0],
             add_final_relu     = False,
+            add_batchnorm      = True,
             disp               = False):
   """
   Create CNN model for multiple inputs and one voxel-wise prediction channel
@@ -83,14 +84,17 @@ def apetnet(n_ch               = 2,
 
   # individual paths
   if n_ind_layers > 0: 
-    init_val_ind = RandomNormal(mean = 0.0, stddev = np.sqrt(2/(np.prod(kernel_shape)*n_kernels_ind)))
+    #init_val_ind = RandomNormal(mean = 0.0, stddev = np.sqrt(2/(np.prod(kernel_shape)*n_kernels_ind)))
 
     x1_list = [i for i in inputs] 
 
     for i in range(n_ind_layers): 
       for j in range(n_ch):
-        x1_list[j] = Conv3D(n_kernels_ind, kernel_shape, padding = 'same', kernel_initializer = init_val_ind,
+        x1_list[j] = Conv3D(n_kernels_ind, kernel_shape, padding = 'same', 
+                            kernel_initializer = 'glorot_uniform',
                             name = 'conv3d_ind_' + str(i) + '_' + str(j))(x1_list[j])
+        if add_batchnorm:
+          x1_list[j] = BatchNormalization(name = 'batchnorm_ind_' + str(i) + '_' + str(j))(x1_list[j])
         x1_list[j] = PReLU(shared_axes=[1,2,3], name = 'prelu_ind_' + str(i) + '_' + str(j))(x1_list[j])
     # concatenate inputs
     x1 = Concatenate(name = 'concat_0')(x1_list)
@@ -100,11 +104,14 @@ def apetnet(n_ch               = 2,
     x1 = Concatenate(name = 'concat_0')(inputs)
 
   # common path
-  init_val = RandomNormal(mean = 0.0, stddev = np.sqrt(2/(np.prod(kernel_shape)*n_kernels_common)))
+  #init_val = RandomNormal(mean = 0.0, stddev = np.sqrt(2/(np.prod(kernel_shape)*n_kernels_common)))
 
   for i in range(n_common_layers): 
-    x1 = Conv3D(n_kernels_common, kernel_shape, padding = 'same', kernel_initializer = init_val,
+    x1 = Conv3D(n_kernels_common, kernel_shape, padding = 'same', 
+                kernel_initializer = 'glorot_uniform',
                 name = 'conv3d_' + str(i))(x1)
+    if add_batchnorm:
+      x1 = BatchNormalization(name = 'batchnorm_' + str(i))(x1)
     x1 = PReLU(shared_axes=[1,2,3], name = 'prelu_' + str(i))(x1)
   
   # layers that adds all features
@@ -115,6 +122,9 @@ def apetnet(n_ch               = 2,
     x1 = Add(name = 'add_0')([x1] + [inputs[i] for i in res_channels])
 
   if add_final_relu:
+    # the final BatchNorm is always applied, since it prevents the output after random
+    # initialization to be completely negative, which will be set to 0 by the final RELU
+    x1 = BatchNormalization(name = 'final_batch_norm')(x1)
     x1 = ReLU(name = 'final_relu')(x1)
   
   model  = Model(inputs = inputs, outputs = x1)
