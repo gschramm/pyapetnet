@@ -74,6 +74,9 @@ def apetnet(n_ch               = 2,
 
   res_channels     ... (list) of channels to add to output of common layers
   
+  add_batchnorm    ... (bool) add batch normalization layers between the conv and the 
+                              PRELU layers
+
   add_final_relu   ... (bool) add a final ReLU layer before output to make sure that
                               output is non-negative
 
@@ -122,9 +125,6 @@ def apetnet(n_ch               = 2,
     x1 = Add(name = 'add_0')([x1] + [inputs[i] for i in res_channels])
 
   if add_final_relu:
-    # the final BatchNorm is always applied, since it prevents the output after random
-    # initialization to be completely negative, which will be set to 0 by the final RELU
-    x1 = BatchNormalization(name = 'final_batch_norm')(x1)
     x1 = ReLU(name = 'final_relu')(x1)
   
   model  = Model(inputs = inputs, outputs = x1)
