@@ -17,10 +17,9 @@ import pickle
 from glob            import glob
 from skimage.measure import compare_ssim as ssim
 
-from pyapetnet.zoom3d          import zoom3d
 from pyapetnet.threeaxisviewer import ThreeAxisViewer
 
-from scipy.ndimage    import find_objects
+from scipy.ndimage    import find_objects, zoom
 
 py.rcParams.update({'mathtext.default':  'regular' })
 
@@ -165,16 +164,16 @@ for tracer in tracers:
   
     # crop and interpolate
     bow = bow[bbox_data['bbox']]
-    bow = zoom3d(bow, bbox_data['zoomfacs'])
+    bow = zoom(bow, bbox_data['zoomfacs'], order = 1, prefilter = False)
   
     osem = osem[bbox_data['bbox']]
-    osem = zoom3d(osem, bbox_data['zoomfacs'])
+    osem = zoom(osem, bbox_data['zoomfacs'], order = 1, prefilter = False)
   
     mr = mr[bbox_data['bbox']]
-    mr = zoom3d(mr, bbox_data['zoomfacs'])
+    mr = zoom(mr, bbox_data['zoomfacs'], order = 1, prefilter = False)
   
     aparc = aparc[bbox_data['bbox']]
-    aparc = zoom3d(aparc, bbox_data['zoomfacs'], interpolate = False)
+    aparc = zoom(aparc, bbox_data['zoomfacs'], order = 1, prefilter = False)
   
     df_file = os.path.splitext(prediction_file)[0] + '_regional_stats.csv'
   
