@@ -9,7 +9,6 @@ from copy                  import deepcopy
 from warnings              import warn
 from glob                  import glob
 from scipy.ndimage         import find_objects, gaussian_filter
-from scipy.optimize        import minimize
 
 import tensorflow
 if tensorflow.__version__ >= '2':
@@ -17,9 +16,9 @@ if tensorflow.__version__ >= '2':
 else:
   from keras.models import load_model
 
+from .align_inputs        import align_inputs
 from .threeaxisviewer     import ThreeAxisViewer
 from .read_dicom          import DicomVolume
-from .rigid_registration  import regis_cost_func, neg_mutual_information
 from .aff_transform       import aff_transform, kul_aff
 from .write_dicom         import write_3d_static_dicom
 
@@ -148,6 +147,10 @@ def predict(pet_input,
   else:
     raise TypeError('Unsupported input data format')
 
+  ################################################################
+  ############ data preprocessing ################################
+  ################################################################
+
   # crop the MR if needed
   if crop_mr:
     bbox              = find_objects(mr_vol > 0.1*mr_vol.max(), max_label = 1)[0]
@@ -160,52 +163,10 @@ def predict(pet_input,
     print('post-smoothing MR with ' + str(mr_ps_fwhm_mm) + ' mm')
     mr_vol = gaussian_filter(mr_vol, mr_ps_fwhm_mm / (2.35*mr_voxsize))
 
-  # interpolate the PET image to the MR voxel grid
-  if verbose: print('\ninterpolationg PET to MR grid')
-
-  # this is the affine that maps from the PET onto the MR grid
-  pre_affine = np.linalg.inv(pet_affine) @ mr_affine
-
-  ################################################################
-  ############ coregister the images #############################
-  ################################################################
- 
-  if coreg: 
-    # rigidly align the shifted PET to CT by minimizing neg mutual information
-    # downsample the arrays by a factor for a fast pre-registration
-    reg_params = np.zeros(6)
-    
-    # (1) initial registration with downsampled arrays
-    # define the down sampling factor
-    dsf    = 3
-    ds_aff = np.diag([dsf,dsf,dsf,1.])
-    
-    mr_vol_ds = aff_transform(mr_vol, ds_aff, np.ceil(np.array(mr_vol.shape)/dsf).astype(int))
-
-    res = minimize(regis_cost_func, reg_params, 
-                   args = (mr_vol_ds, pet_vol, True, True, neg_mutual_information, pre_affine @ ds_aff), 
-                   method = 'Powell', 
-                   options = {'ftol':1e-2, 'xtol':1e-2, 'disp':True, 'maxiter':20, 'maxfev':5000})
-    
-    reg_params = res.x.copy()
-    # we have to scale the translations by the down sample factor since they are in voxels
-    reg_params[:3] *= dsf
-    
-    # (2) registration with full arrays
-    res = minimize(regis_cost_func, reg_params, 
-                   args = (mr_vol, pet_vol, True, True, neg_mutual_information, pre_affine), 
-                   method = 'Powell', 
-                   options = {'ftol':1e-2, 'xtol':1e-2, 'disp':True, 'maxiter':20, 'maxfev':5000})
-    reg_params = res.x.copy()
-
-    regis_aff = pre_affine @ kul_aff(reg_params, origin = np.array(mr_vol.shape)/2)
-  else:
-    regis_aff = pre_affine.copy()
-
-  # the regis_aff is the affine that maps from the PET onto MR grid including coregistration
-
-  #############################################################
-  #############################################################
+  # regis_aff is the affine transformation that maps from the PET to the MR grid
+  # if coreg is False, it is simply deduced from the affine transformation
+  # otherwise, rigid registration with mutual information is used
+  regis_aff = align_inputs(pet, mr, pet_affine, mr_affine, coreg = coreg)
 
   # read the internal voxel size that was used during training from the model header
   if os.path.isdir(os.path.join(model_dir,model_name)):
@@ -222,17 +183,23 @@ def predict(pet_input,
       # but it was always 1x1x1 mm^3
       training_voxsize = np.ones(3)
     
-  # interpolate both volumes to 1mm^3 voxels
-  # this is needed because the model was trained on 1mm^3 voxels
+  # interpolate both volumes to the voxel size used during training
   if verbose: print('\ninterpolationg input volumes to 1mm^3 voxels')
-  zoomfacs            = mr_voxsize / training_voxsize
-  mr_vol_interpolated          = zoom3d(mr_vol, zoomfacs)
+  zoomfacs = mr_voxsize / training_voxsize
+  if not np.all(np.isclose(zoomfacs, np.ones(3))):
+    mr_vol_interpolated = zoom3d(mr_vol, zoomfacs)
+  else:
+    mr_vol_interpolated = mr_vol.copy()
 
   # this is the final affine that maps from the PET grid to interpolated MR grid 
   # using the small voxels used during training 
-  pet_mr_interp_aff   = regis_aff @ np.diag(np.concatenate((1./zoomfacs,[1])))
+  pet_mr_interp_aff = regis_aff @ np.diag(np.concatenate((1./zoomfacs,[1])))
 
-  pet_vol_mr_grid_interpolated = aff_transform(pet_vol, pet_mr_interp_aff, mr_vol_interpolated.shape, cval = pet_vol.min()) 
+  if not np.isclose(pet_mr_interp_aff, np.eye(4)):
+    pet_vol_mr_grid_interpolated = aff_transform(pet_vol, pet_mr_interp_aff, mr_vol_interpolated.shape, 
+                                                 cval = pet_vol.min()) 
+  else:
+    pet_vol_mr_grid_interpolated = pet_vol.copy()
  
   # convert the input volumes to float32
   if not mr_vol_interpolated.dtype == np.float32: 
@@ -248,9 +215,9 @@ def predict(pet_input,
   pet_max = np.percentile(pet_vol_mr_grid_interpolated, perc)
   pet_vol_mr_grid_interpolated /= pet_max
 
-  ############################
-  # make the actual prediction
-  ############################
+  ################################################################
+  ############# make the actual prediction #######################
+  ################################################################
   
   if verbose: print('\npredicting the bowsher')
 
