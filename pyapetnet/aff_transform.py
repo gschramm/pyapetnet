@@ -4,7 +4,7 @@ import math
 from numba import njit, prange
 
 #-------------------------------------------------------------------------------
-@njit(parallel = True)
+@njit()
 def aff_transform(volume, aff_mat, output_shape, trilin = True, cval = 0., os0 = 1, os1 = 1, os2 = 1):
   """ Affine transformation of a 3D volume in parallel (using numba's njit).
 
@@ -39,6 +39,7 @@ def aff_transform(volume, aff_mat, output_shape, trilin = True, cval = 0., os0 =
   of scipy.ndimage.affine_transform (with order = 1 and prefilter = False) 
   in a faster way on a multi CPU system.
   """
+
   # the dimensions of the output volume
   n0, n1, n2          = output_shape
 

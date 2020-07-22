@@ -4,7 +4,7 @@ import math
 from numba import prange, njit
 
 #---------------------------------------------------------------------------
-@njit(parallel = True)
+@njit()
 def nearest_neighbor_3d_0(array, zoom, cval = 0):
   """Upsample a 3D array in the 0 (left-most) direction using the nearest neighbor
 
@@ -50,7 +50,7 @@ def nearest_neighbor_3d_0(array, zoom, cval = 0):
 
 #---------------------------------------------------------------------------
 
-@njit(parallel = True)
+@njit()
 def nearest_neighbor_3d_1(array, zoom, cval = 0):
   """Upsample a 3D array in the 1 (middle) direction using nearest neighbor
 
@@ -94,7 +94,7 @@ def nearest_neighbor_3d_1(array, zoom, cval = 0):
   return new_array
 
 #---------------------------------------------------------------------------
-@njit(parallel = True)
+@njit()
 def nearest_neighbor_3d_2(array, zoom, cval = 0):
   """Upsample a 3D array in the 2 (right-most) direction using nearest neighbor
 
@@ -138,7 +138,7 @@ def nearest_neighbor_3d_2(array, zoom, cval = 0):
   return new_array
 
 #---------------------------------------------------------------------------
-@njit(parallel = True)
+@njit()
 def upsample_3d_0(array, zoom, cval = 0):
   """Upsample a 3D array in the 0 (left-most) direction 
 
@@ -195,7 +195,7 @@ def upsample_3d_0(array, zoom, cval = 0):
   return new_array
 
 #---------------------------------------------------------------------------
-@njit(parallel = True)
+@njit()
 def upsample_3d_1(array, zoom, cval = 0):
   """Upsample a 3D array in the 1 (middle) direction 
 
@@ -251,7 +251,7 @@ def upsample_3d_1(array, zoom, cval = 0):
   return new_array
 
 #---------------------------------------------------------------------------
-@njit(parallel = True)
+@njit()
 def upsample_3d_2(array, zoom, cval = 0):
   """Upsample a 3D array in the 2 (right-most) direction 
 
@@ -309,7 +309,7 @@ def upsample_3d_2(array, zoom, cval = 0):
 
 
 #---------------------------------------------------------------------------
-@njit(parallel = True)
+@njit()
 def downsample_3d_0(array, zoom, cval = 0):
   """Downsample a 3D array in the 0 (left-most) direction 
 
@@ -359,7 +359,7 @@ def downsample_3d_0(array, zoom, cval = 0):
   return new_array
 
 #---------------------------------------------------------------------------
-@njit(parallel = True)
+@njit()
 def downsample_3d_1(array, zoom, cval = 0):
   """Downsample a 3D array in the 1 (middle) direction 
 
@@ -409,7 +409,7 @@ def downsample_3d_1(array, zoom, cval = 0):
   return new_array
 
 #---------------------------------------------------------------------------
-@njit(parallel = True)
+@njit()
 def downsample_3d_2(array, zoom, cval = 0):
   """Downsample a 3D array in the 2 (right-most) direction 
 

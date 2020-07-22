@@ -5,7 +5,7 @@ from  numba import njit, prange
 
 from .aff_transform import kul_aff, aff_transform
 #-------------------------------------------------------------------------------
-@njit(parallel = True)
+@njit()
 def jointhisto_3dvols(x, y, nbins = 40, normalize = True):
   """Calculate the joint histogram between two 3d volumes.
 
