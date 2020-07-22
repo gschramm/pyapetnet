@@ -5,10 +5,9 @@ import pydicom
 import h5py
 import json
 
-from copy                  import deepcopy
-from warnings              import warn
-from glob                  import glob
-from scipy.ndimage         import find_objects, gaussian_filter
+from copy     import deepcopy
+from warnings import warn
+from glob     import glob
 
 import tensorflow
 if tensorflow.__version__ >= '2':
@@ -16,10 +15,10 @@ if tensorflow.__version__ >= '2':
 else:
   from keras.models import load_model
 
-from .align_inputs        import align_inputs
+from .preprocess          import preprocess_volumes
 from .threeaxisviewer     import ThreeAxisViewer
 from .read_dicom          import DicomVolume
-from .aff_transform       import aff_transform, kul_aff
+from .aff_transform       import aff_transform
 from .write_dicom         import write_3d_static_dicom
 
 import matplotlib as mpl
@@ -29,8 +28,6 @@ import matplotlib.pyplot as py
 # imports for old predictors
 from time import time
 from .generators import PatchSequence
-
-from .zoom3d             import zoom3d
 
 #--------------------------------------------------------------------------------------
 
@@ -105,7 +102,6 @@ def predict(pet_input,
     mr_dcm     = DicomVolume(mr_files)
     mr_vol     = mr_dcm.get_data()
     mr_affine  = mr_dcm.affine
-    mr_voxsize = np.sqrt((mr_affine**2).sum(axis = 0))[:-1]
  
     # read the PET dicoms
     if verbose: print('\nreading PET dicoms')
@@ -129,7 +125,6 @@ def predict(pet_input,
     mr_affine = mr_affine_ras.copy()
     mr_affine[0,-1] = (-1 * mr_nii.affine @ np.array([mr_vol.shape[0]-1,0,0,1]))[0]
     mr_affine[1,-1] = (-1 * mr_nii.affine @ np.array([0,mr_vol.shape[1]-1,0,1]))[1]
-    mr_voxsize      = np.sqrt((mr_affine**2).sum(axis = 0))[:-1]
 
     if verbose: print('\nreading PET nifti')
     pet_nii        = nib.load(pet_input)
@@ -143,30 +138,8 @@ def predict(pet_input,
     pet_affine = pet_affine_ras.copy()
     pet_affine[0,-1] = (-1 * pet_nii.affine @ np.array([pet_vol.shape[0]-1,0,0,1]))[0]
     pet_affine[1,-1] = (-1 * pet_nii.affine @ np.array([0,pet_vol.shape[1]-1,0,1]))[1]
-    pet_voxsize      = np.sqrt((pet_affine**2).sum(axis = 0))[:-1]
   else:
     raise TypeError('Unsupported input data format')
-
-  ################################################################
-  ############ data preprocessing ################################
-  ################################################################
-
-  # crop the MR if needed
-  if crop_mr:
-    bbox              = find_objects(mr_vol > 0.1*mr_vol.max(), max_label = 1)[0]
-    mr_vol            = mr_vol[bbox]
-    crop_origin       = np.array([x.start for x in bbox] + [1])
-    mr_affine[:-1,-1] = (mr_affine @ crop_origin)[:-1]
-
-  # post-smooth MR if needed
-  if mr_ps_fwhm_mm is not None:
-    print('post-smoothing MR with ' + str(mr_ps_fwhm_mm) + ' mm')
-    mr_vol = gaussian_filter(mr_vol, mr_ps_fwhm_mm / (2.35*mr_voxsize))
-
-  # regis_aff is the affine transformation that maps from the PET to the MR grid
-  # if coreg is False, it is simply deduced from the affine transformation
-  # otherwise, rigid registration with mutual information is used
-  regis_aff = align_inputs(pet, mr, pet_affine, mr_affine, coreg = coreg)
 
   # read the internal voxel size that was used during training from the model header
   if os.path.isdir(os.path.join(model_dir,model_name)):
@@ -182,39 +155,17 @@ def predict(pet_input,
       # in the old models the training (internal) voxel size is not in the header
       # but it was always 1x1x1 mm^3
       training_voxsize = np.ones(3)
-    
-  # interpolate both volumes to the voxel size used during training
-  if verbose: print('\ninterpolationg input volumes to 1mm^3 voxels')
-  zoomfacs = mr_voxsize / training_voxsize
-  if not np.all(np.isclose(zoomfacs, np.ones(3))):
-    mr_vol_interpolated = zoom3d(mr_vol, zoomfacs)
-  else:
-    mr_vol_interpolated = mr_vol.copy()
+   
 
-  # this is the final affine that maps from the PET grid to interpolated MR grid 
-  # using the small voxels used during training 
-  pet_mr_interp_aff = regis_aff @ np.diag(np.concatenate((1./zoomfacs,[1])))
+  ################################################################
+  ############ data preprocessing ################################
+  ################################################################
 
-  if not np.isclose(pet_mr_interp_aff, np.eye(4)):
-    pet_vol_mr_grid_interpolated = aff_transform(pet_vol, pet_mr_interp_aff, mr_vol_interpolated.shape, 
-                                                 cval = pet_vol.min()) 
-  else:
-    pet_vol_mr_grid_interpolated = pet_vol.copy()
- 
-  # convert the input volumes to float32
-  if not mr_vol_interpolated.dtype == np.float32: 
-    mr_vol_interpolated  = mr_vol_interpolated.astype(np.float32)
-  if not pet_vol_mr_grid_interpolated.dtype == np.float32: 
-    pet_vol_mr_grid_interpolated = pet_vol_mr_grid_interpolated.astype(np.float32)
-
-  # normalize the data: we divide the images by the specified percentile (more stable than the max)
-  if verbose: print('\nnormalizing the input images')
-  mr_max = np.percentile(mr_vol_interpolated, perc)
-  mr_vol_interpolated /= mr_max
+  pet_vol_mr_grid_interpolated, mr_vol_interpolated, mr_affine, pet_max, mr_max = \
+    preprocess_volumes(pet_vol, mr_vol, pet_affine, mr_affine, training_voxsize,
+                       perc = perc, coreg = coreg, crop_mr = crop_mr, 
+                       mr_ps_fwhm_mm = mr_ps_fwhm_mm, verbose = verbose)
   
-  pet_max = np.percentile(pet_vol_mr_grid_interpolated, perc)
-  pet_vol_mr_grid_interpolated /= pet_max
-
   ################################################################
   ############# make the actual prediction #######################
   ################################################################
@@ -264,7 +215,7 @@ def predict(pet_input,
   if verbose: print('\nunnormalizing the images')
   mr_vol_interpolated          *= mr_max
   pet_vol_mr_grid_interpolated *= pet_max
-  predicted_bow       *= pet_max
+  predicted_bow                *= pet_max
 
   print('\n\n------------------------------------------')
   print('------------------------------------------')
