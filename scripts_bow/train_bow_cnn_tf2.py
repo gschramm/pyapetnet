@@ -169,7 +169,7 @@ m = tf.keras.models.load_model(output_model_file, custom_objects={'ssim_3d_loss'
 #-----------------------------------------------------------------------------------------------
 # show final prediction of validation data
 if has_x_disp:
-  from pyapetnet.threeaxisviewer import ThreeAxisViewer
+  from pymirc.viewer import ThreeAxisViewer
   p = parallel_model.predict(validation_data[0])
 
   imshow_kwargs = {'vmin':0, 'vmax':1.2}

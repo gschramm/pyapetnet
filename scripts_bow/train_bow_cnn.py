@@ -212,13 +212,3 @@ with h5py.File(output_model_file) as hf:
   hf['header/n_epochs']         = n_epochs
   hf['header/steps_per_epochs'] = steps_per_epoch
   hf['header/internal_voxsize'] = internal_voxsize
-
-#-----------------------------------------------------------------------------------------------
-## show final prediction of validation data
-#if has_x_disp:
-#  from pyapetnet.threeaxisviewer import ThreeAxisViewer
-#  p = parallel_model.predict(validation_data[0])
-#
-#  imshow_kwargs = {'vmin':0, 'vmax':1.2}
-#  vi = ThreeAxisViewer([validation_data[0][0].squeeze(),p.squeeze(),validation_data[1].squeeze()], 
-#                        imshow_kwargs = imshow_kwargs)

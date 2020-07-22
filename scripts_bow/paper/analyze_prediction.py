@@ -17,7 +17,7 @@ import pickle
 from glob            import glob
 from skimage.measure import compare_ssim as ssim
 
-from pyapetnet.threeaxisviewer import ThreeAxisViewer
+from pymirc.viewer import ThreeAxisViewer
 
 from scipy.ndimage    import find_objects, zoom
 

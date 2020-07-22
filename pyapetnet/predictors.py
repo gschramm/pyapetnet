@@ -15,11 +15,11 @@ if tensorflow.__version__ >= '2':
 else:
   from keras.models import load_model
 
-from .preprocess          import preprocess_volumes
-from .threeaxisviewer     import ThreeAxisViewer
-from .read_dicom          import DicomVolume
-from .aff_transform       import aff_transform
-from .write_dicom         import write_3d_static_dicom
+from pymirc.image_operations import aff_transform
+from pymirc.viewer           import ThreeAxisViewer
+from pymirc.fileio           import DicomVolume, write_3d_static_dicom
+
+from .preprocessing import preprocess_volumes
 
 import matplotlib as mpl
 if os.getenv('DISPLAY') is None: mpl.use('Agg')

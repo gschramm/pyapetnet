@@ -2,9 +2,8 @@ import numpy as np
 from scipy.ndimage import find_objects, gaussian_filter
 from scipy.optimize import minimize
 
-from .aff_transform import aff_transform, kul_aff
-from .rigid_registration import regis_cost_func, neg_mutual_information
-from .zoom3d import zoom3d
+from pymirc.image_operations import aff_transform, kul_aff, zoom3d
+from pymirc.metrics import regis_cost_func, neg_mutual_information
 
 def align_inputs(pet_vol, mr_vol, pet_affine, mr_affine, coreg = True):
   """ calculate affine transformation matrix to map PET onto MR grid

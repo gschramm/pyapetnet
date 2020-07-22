@@ -179,6 +179,6 @@ for i in range(len(val_input_fnames)):
   py.close(fig)
 
 if args.interactive:
-  from pyapetnet.threeaxisviewer import ThreeAxisViewer
+  from pymirc.viewer import ThreeAxisViewer
   vi = ThreeAxisViewer([validation_data[0][0].squeeze(),p.squeeze(),validation_data[1].squeeze()], 
                         imshow_kwargs = imshow_kwargs)

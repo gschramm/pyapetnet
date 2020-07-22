@@ -19,9 +19,8 @@ else:
 
 from tempfile    import NamedTemporaryFile      
 
-from .utils              import affine_center_rotation
-from .zoom3d             import zoom3d
-from .rigid_registration import aff_transform
+from pymirc.image_operations import aff_transform, zoom3d
+from .utils import affine_center_rotation
 
 def vol_brain_crop(input_vols, target_vol, bbox_vol_ch = 1, brain_is_ch = 0, brain_is_th = 0.35):
   """
