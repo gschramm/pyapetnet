@@ -1,1 +1,2 @@
-recursive-include demos *.py
+recursive-include pyapetnet/trained_models *
+recursive-include pyapetnet/demos *
