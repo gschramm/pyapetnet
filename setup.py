@@ -17,13 +17,13 @@ setuptools.setup(
         "Operating System :: OS Independent",
     ],
     python_requires='>=3.6',
-    install_requires=['tensorflow==2.2',
+    install_requires=['tensorflow>=2.2',
+                      'pymirc @ https://github.com/gschramm/pymirc/archive/v0.19.zip',
                       'nibabel>=3.1',
                       'matplotlib>=3.1',
                       'pydicom>=2.0',
-                      'numba>=0.49',
-                      'pymirc @ https://github.com/gschramm/pymirc/archive/v0.18.zip'],
-    extras_require={'tf': ['tensorflow==2.2'],
-                    'tf_gpu': ['tensorflow-gpu==2.2']},
+                      'numba>=0.49']
+    extras_require={'tf': ['tensorflow>=2.2'],
+                    'tf_gpu': ['tensorflow-gpu>=2.2']},
     include_package_data=True,
 )
