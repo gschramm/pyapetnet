@@ -1,4 +1,4 @@
-## What is pyaapetnet?
+## What is pyapetnet?
 
 ## Live Demo
 
