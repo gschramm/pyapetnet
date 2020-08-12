@@ -22,7 +22,7 @@ setuptools.setup(
                       'nibabel>=3.1',
                       'matplotlib>=3.1',
                       'pydicom>=2.0',
-                      'numba>=0.49']
+                      'numba>=0.49'],
     extras_require={'tf': ['tensorflow>=2.2'],
                     'tf_gpu': ['tensorflow-gpu>=2.2']},
     include_package_data=True,
