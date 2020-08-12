@@ -18,7 +18,7 @@ setuptools.setup(
     ],
     python_requires='>=3.6',
     install_requires=['tensorflow>=2.2',
-                      'nibabel>=3.1',
+                      'nibabel>=3.0',
                       'matplotlib>=3.1',
                       'pydicom>=2.0',
                       'numba>=0.48',
