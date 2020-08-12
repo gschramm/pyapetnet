@@ -2,49 +2,9 @@ import numpy as np
 from scipy.ndimage import find_objects, gaussian_filter
 from scipy.optimize import minimize
 
-from pymirc.image_operations import aff_transform, kul_aff, zoom3d
-from pymirc.metrics import regis_cost_func, neg_mutual_information
-
-def align_inputs(pet_vol, mr_vol, pet_affine, mr_affine, coreg = True):
-  """ calculate affine transformation matrix to map PET onto MR grid
-  """
-  # this is the affine that maps from the PET onto the MR grid
-  pre_affine = np.linalg.inv(pet_affine) @ mr_affine
-
-  if coreg: 
-    reg_params = np.zeros(6)
-    
-    # (1) initial registration with downsampled arrays
-    # define the down sampling factor
-    dsf    = 3
-    ds_aff = np.diag([dsf,dsf,dsf,1.])
-    
-    mr_vol_ds = aff_transform(mr_vol, ds_aff, np.ceil(np.array(mr_vol.shape)/dsf).astype(int))
-
-    res = minimize(regis_cost_func, reg_params, 
-                   args = (mr_vol_ds, pet_vol, True, True, neg_mutual_information, pre_affine @ ds_aff), 
-                   method = 'Powell', 
-                   options = {'ftol':1e-2, 'xtol':1e-2, 'disp':True, 'maxiter':20, 'maxfev':5000})
-    
-    reg_params = res.x.copy()
-    # we have to scale the translations by the down sample factor since they are in voxels
-    reg_params[:3] *= dsf
-    
-    # (2) registration with full arrays
-    res = minimize(regis_cost_func, reg_params, 
-                   args = (mr_vol, pet_vol, True, True, neg_mutual_information, pre_affine), 
-                   method = 'Powell', 
-                   options = {'ftol':1e-2, 'xtol':1e-2, 'disp':True, 'maxiter':20, 'maxfev':5000})
-    reg_params = res.x.copy()
-
-    regis_aff = pre_affine @ kul_aff(reg_params, origin = np.array(mr_vol.shape)/2)
-  else:
-    regis_aff = pre_affine.copy()
-
-  return regis_aff
+from pymirc.image_operations import aff_transform, zoom3d, rigid_registration
 
 #-----------------------------------------------------------------------------------------------------
-
 def preprocess_volumes(pet_vol, mr_vol, pet_affine, mr_affine, training_voxsize,
                        perc = 99.99, coreg = True, crop_mr = True, 
                        mr_ps_fwhm_mm = None, verbose = False):
@@ -68,7 +28,10 @@ def preprocess_volumes(pet_vol, mr_vol, pet_affine, mr_affine, training_voxsize,
   # regis_aff is the affine transformation that maps from the PET to the MR grid
   # if coreg is False, it is simply deduced from the affine transformation
   # otherwise, rigid registration with mutual information is used
-  regis_aff = align_inputs(pet_vol, mr_vol, pet_affine, mr_affine, coreg = coreg)
+  if coreg:
+    regis_aff = rigid_registration(pet_vol, mr_vol, pet_affine, mr_affine)
+  else:
+    regis_aff = np.linalg.inv(pet_affine) @ mr_affine
 
   # interpolate both volumes to the voxel size used during training
   zoomfacs = mr_voxsize / training_voxsize
