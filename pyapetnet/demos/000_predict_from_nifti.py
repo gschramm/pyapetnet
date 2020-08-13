@@ -1,42 +1,92 @@
+import nibabel as nib
+import json
+import os
+import tensorflow as tf
+
+import numpy as np
 import os
 
-from pyapetnet.predictors import predict
+import matplotlib.pyplot as py
 
-"""
-Tutorial on how to do a Bowsher CNN preduction from 2 nifti input files
------------------------------------------------------------------------
+import pyapetnet
+from pyapetnet.preprocessing import preprocess_volumes
 
-Steps done by the predict() function from pyapetnet.predictors:
+#----------------------------------------------------------------------
+def load_nii_in_ras(fname):
+  """ function that loads nifti file and returns the volume and affine in 
+      RAS orientation
+  """
+  nii = nib.load(fname)
+  nii = nib.as_closest_canonical(nii)
+  vol = nii.get_fdata()
 
-(1) read 2 input images (nifti or dicom)
+  return vol, nii.affine
+#----------------------------------------------------------------------
+#----------------------------------------------------------------------
 
-(2) use the affine matrix stored in the headers to regrid the images on a common
-    1x1x1 mm^3 grid
+#------
+# inputs
+pet_fname  = 'pet.nii'
+mr_fname   = 'mr.nii'
+model_name = '200710_mae_osem_psf_bet_10'
 
-(3) (optional) regidly coregister the input images
+#------------------------------------------------------------------
+# load the trained CNN and its internal voxel size used for training
+co ={'ssim_3d_loss': None,'mix_ssim_3d_mae_loss': None}
 
-(3) normalize the input images
+model_abs_path = os.path.join(os.path.dirname(pyapetnet.__file__),'trained_models',model_name)
 
-(4) perform a CNN prediction
+model = tf.keras.models.load_model(model_abs_path, custom_objects = co)
+                   
+# load the voxel size used for training
+with open(os.path.join(model_abs_path,'config.json')) as f:
+  cfg = json.load(f)
+  training_voxsize = cfg['internal_voxsize']*np.ones(3)
 
-(5) unnormalize the preduction
+#------------------------------------------------------------------
+# load and preprocess the input PET and MR volumes
+pet, pet_affine = load_nii_in_ras(pet_fname)
+mr, mr_affine   = load_nii_in_ras(mr_fname)
 
-(6) save the output (as nifti for nifti input, as nifti and dicom for dicom input)
-"""
+# preprocess the input volumes (coregistration, interpolation and intensity normalization)
+pet_preproc, mr_preproc, o_aff, pet_max, mr_max = preprocess_volumes(pet, mr, 
+  pet_affine, mr_affine, training_voxsize, perc = 99.99, coreg = True, crop_mr = True)
 
-pdir = '/foo/bar'
 
-predict(mr_input      = os.path.join(pdir,'sim_t1.nii'),             # the input MR nifti file
-        pet_input     = os.path.join(pdir,'sim_osem.nii'),           # the input PET nifti file
-        input_format  = 'nifti',                                     # the input image format
-        odir          = os.path.join(pdir,'test_prediction'),        # the name of the output nifti (.nii is added)
-        model_name    = 'test_model.h5',                             # the file basename of the trained CNN
-        model_dir     = pdir,                                        # the directory where the CNN file sits
-        perc          = 99.99,                                       # precentile used for data normalization
-        patchsize     = (64,64,64),                                  # patchsize used in prediction
-        verbose       = True,                                        # print verbose output
-        clip_neg      = True,                                        # clip negative values in output
-        coreg         = False,                                       # rigidly align the inputs using mutual inf.
-        affine        = None,                                        # a file containing registration parameters
-        crop_mr       = False,                                       # crop input volumes to the MR head contour 
-        debug_mode    = False)                                       # debug mode saves some intermediate files
+#------------------------------------------------------------------
+# the actual CNN prediction
+x = [np.expand_dims(np.expand_dims(pet_preproc,0),-1), np.expand_dims(np.expand_dims(mr_preproc,0),-1)]
+pred = model.predict(x).squeeze()
+
+# undo the intensity normalization
+pet_preproc*= pet_max
+mr_preproc  *= mr_max
+pred        *= pet_max
+
+
+#------------------------------------------------------------------
+# save the preprocessed input and output
+nib.save(nib.Nifti1Image(pet_preproc, o_aff), 'pet_preproc.nii')
+nib.save(nib.Nifti1Image(mr_preproc, o_aff), 'mr_preproc.nii')
+nib.save(nib.Nifti1Image(pred, o_aff), f'prediction_{model_name}.nii')
+
+
+# show the results
+fig, ax = py.subplots(3,3, figsize = (9,9))
+ax[0,0].imshow(pet_preproc[:,::-1,pet_preproc.shape[2]//2].T, cmap = py.cm.Greys, vmax = pet_max)
+ax[0,1].imshow(pet_preproc[:,pet_preproc.shape[1]//2,::-1].T, cmap = py.cm.Greys, vmax = pet_max)
+ax[0,2].imshow(pet_preproc[pet_preproc.shape[0]//2,:,::-1].T, cmap = py.cm.Greys, vmax = pet_max)
+ax[1,0].imshow(mr_preproc[:,::-1,pet_preproc.shape[2]//2].T, cmap = py.cm.Greys_r, vmax = mr_max)
+ax[1,1].imshow(mr_preproc[:,pet_preproc.shape[1]//2,::-1].T, cmap = py.cm.Greys_r, vmax = mr_max)
+ax[1,2].imshow(mr_preproc[pet_preproc.shape[2]//2,:,::-1].T, cmap = py.cm.Greys_r, vmax = mr_max)
+ax[2,0].imshow(pred[:,::-1,pet_preproc.shape[2]//2].T, cmap = py.cm.Greys, vmax = pet_max)
+ax[2,1].imshow(pred[:,pet_preproc.shape[1]//2,::-1].T, cmap = py.cm.Greys, vmax = pet_max)
+ax[2,2].imshow(pred[pet_preproc.shape[0]//2,:,::-1].T, cmap = py.cm.Greys, vmax = pet_max)
+for axx in ax.flatten(): axx.set_axis_off()
+
+ax[0,1].set_title('input PET')
+ax[1,1].set_title('input MR')
+ax[2,1].set_title('predicted MAP Bowsher')
+
+fig.tight_layout()
+fig.show()

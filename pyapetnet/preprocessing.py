@@ -29,7 +29,7 @@ def preprocess_volumes(pet_vol, mr_vol, pet_affine, mr_affine, training_voxsize,
   # if coreg is False, it is simply deduced from the affine transformation
   # otherwise, rigid registration with mutual information is used
   if coreg:
-    regis_aff = rigid_registration(pet_vol, mr_vol, pet_affine, mr_affine)
+    _, regis_aff, _ = rigid_registration(pet_vol, mr_vol, pet_affine, mr_affine)
   else:
     regis_aff = np.linalg.inv(pet_affine) @ mr_affine
 
