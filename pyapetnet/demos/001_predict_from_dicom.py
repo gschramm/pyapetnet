@@ -1,44 +1,76 @@
+import nibabel as nib
+import json
+import os
+import tensorflow as tf
+
+import numpy as np
 import os
 
-from pyapetnet.predictors import predict
+import matplotlib.pyplot as py
 
-"""
-Tutorial on how to do a Bowsher CNN preduction from 2 nifti input files
------------------------------------------------------------------------
+import pyapetnet
+from pyapetnet.preprocessing import preprocess_volumes
+from pyapetnet.utils         import flip_ras_lps
+from pymirc.fileio import DicomVolume
 
-Steps done by the predict() function from pyapetnet.predictors:
+#------
+# inputs
+pet_dcm_pattern = os.path.join('pet_dcm','*')
+mr_dcm_pattern  = os.path.join('mr_dcm','*')
+model_name = '200710_mae_osem_psf_bet_10'
 
-(1) read 2 input images (nifti or dicom)
+#------------------------------------------------------------------
+# load the trained CNN and its internal voxel size used for training
+co ={'ssim_3d_loss': None,'mix_ssim_3d_mae_loss': None}
 
-(2) use the affine matrix stored in the headers to regrid the images on a common
-    1x1x1 mm^3 grid
+model_abs_path = os.path.join(os.path.dirname(pyapetnet.__file__),'trained_models',model_name)
 
-(3) (optional) regidly coregister the input images
+model = tf.keras.models.load_model(model_abs_path, custom_objects = co)
+                   
+# load the voxel size used for training
+with open(os.path.join(model_abs_path,'config.json')) as f:
+  cfg = json.load(f)
+  training_voxsize = cfg['internal_voxsize']*np.ones(3)
 
-(3) normalize the input images
+#------------------------------------------------------------------
+# load and preprocess the input PET and MR volumes
+pet_dcm = DicomVolume(pet_dcm_pattern)
+mr_dcm  = DicomVolume(mr_dcm_pattern)
 
-(4) perform a CNN prediction
+pet = pet_dcm.get_data()
+mr  = mr_dcm.get_data()
 
-(5) unnormalize the preduction
+pet_affine = pet_dcm.affine
+mr_affine  = mr_dcm.affine
 
-(6) save the output (as nifti for nifti input, as nifti and dicom for dicom input)
-"""
+# preprocess the input volumes (coregistration, interpolation and intensity normalization)
+pet_preproc, mr_preproc, o_aff, pet_max, mr_max = preprocess_volumes(pet, mr, 
+  pet_affine, mr_affine, training_voxsize, perc = 99.99, coreg = True, crop_mr = True)
 
-pdir = os.path.join('..','data','demo_data','ANON1002')
+#------------------------------------------------------------------
+# the actual CNN prediction
+x = [np.expand_dims(np.expand_dims(pet_preproc,0),-1), np.expand_dims(np.expand_dims(mr_preproc,0),-1)]
+pred = model.predict(x).squeeze()
 
-predict(mr_input      = os.path.join(pdir,'BRAVO_MR','*.img'),       # file pattern for high res MR input dicom files
-        pet_input     = os.path.join(pdir,'PT','*.img'),             # file pattern for low res PET input dicom files
-        input_format  = 'dicom',                                     # the input image format
-        odir          = os.path.join('..','data',
-                                     'demo_data','test_prediction'), # the directory for the output dicoms
-        model_name    = '190528_paper_bet_10_psf_mlem.h5',           # the file basename containing the 
-                                                                     # trained CNN
-        model_dir     = os.path.join('..','data','trained_models'),  # the directory where the CNN file sits
-        perc          = 99.99,                                       # precentile used for data normalization
-        patchsize     = (128,128,128),                               # patchsize used in prediction
-        verbose       = True,                                        # print verbose output
-        clip_neg      = True,                                        # clip negative values in output
-        coreg         = True,                                        # rigidly align the inputs using mutual inf.
-        affine        = None,                                        # a file containing registration parameters
-        crop_mr       = False,                                       # crop input volumes to the MR head contour 
-        debug_mode    = False)                                       # debug mode saves some intermediate files
+# undo the intensity normalization
+pet_preproc *= pet_max
+mr_preproc  *= mr_max
+pred        *= pet_max
+
+
+#------------------------------------------------------------------
+# save the preprocessed input and output
+# dicom volumes are read as LPS, but nifti volumes have to be in RAS
+nib.save(nib.Nifti1Image(*flip_ras_lps(pet_preproc, o_aff)), 'pet_preproc.nii')
+nib.save(nib.Nifti1Image(*flip_ras_lps(mr_preproc, o_aff)), 'mr_preproc.nii')
+nib.save(nib.Nifti1Image(*flip_ras_lps(pred, o_aff)), f'prediction_{model_name}.nii')
+
+
+# show the results
+import pymirc.viewer as pv
+pmax = np.percentile(pred,99.9)
+mmax = np.percentile(mr_preproc,99.9)
+
+ims = [{'vmin':0, 'vmax': mmax, 'cmap': py.cm.Greys_r}, 
+       {'vmin':0, 'vmax': pmax}, {'vmin':0, 'vmax': pmax}]
+pv.ThreeAxisViewer([mr_preproc, pet_preproc, pred], imshow_kwargs = ims)

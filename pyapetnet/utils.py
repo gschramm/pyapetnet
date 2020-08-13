@@ -59,3 +59,15 @@ def load_nii_in_ras(fname):
   vol = nii.get_fdata()
 
   return vol, nii.affine
+
+#----------------------------------------------------------------------
+def flip_ras_lps(vol, affine):
+  """ flip a volume and its affine from RAS to LPS, or from LPS to RAS
+  
+  """
+  vol_flipped    = np.flip(vol, (0,1))
+  affine_flipped = affine.copy()
+  affine_flipped[0,-1] = (-1 * affine @ np.array([vol.shape[0]-1,0,0,1]))[0]
+  affine_flipped[1,-1] = (-1 * affine @ np.array([0,vol.shape[1]-1,0,1]))[1]
+
+  return vol_flipped, affine_flipped
