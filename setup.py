@@ -23,7 +23,5 @@ setuptools.setup(
                       'pydicom>=2.0',
                       'numba>=0.48',
                       'pymirc @ https://github.com/gschramm/pymirc/archive/v0.19.zip'],
-    extras_require={'tf': ['tensorflow>=2.2'],
-                    'tf_gpu': ['tensorflow-gpu>=2.2']},
     include_package_data=True,
 )

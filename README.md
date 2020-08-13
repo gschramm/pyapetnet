@@ -42,35 +42,25 @@ To create a virtual conda python=3.6 environment execute
 ```conda create -n pyapetnet python=3.6 ipython ```
 
 To test the installation of the virual environment, execute
-
 ```conda activate pyapetnet```
 
 ### Installation of the pyapetnet package
 
-Assuming that you have downloadad / received the latest
-version of the pyapetnet package in a .zip archive pyapetnet-XX.zip
-and saved in ```mydir```
-
+Activate the virual conda environment
 ```conda activate pyapetnet```
 
-```cd mydir``` 
+To install the pyapetnet package run (replace X.XX with the latest release
+version that can be found on https://github.com/gschramm/pyapetnet/releases)
 
-You should now be in the parent dir containing the pyapetnet
-zip archive
- 
-For the CPU tensorflow version run:
-```pip install pyapetnet-XX.zip[tf]```
-
-For the GPU tensorflow version run:
-```pip install pyapetnet-XX.zip[tf_gpu]```
+```pip install https://github.com/gschramm/pyapetnet/archive/vX.XX.zip```
 
 which will install the pyapetnet package inside the virtual
 conda environment.
 
-To verify the installation you can execute
+To test the installation run (inside python or ipython)
 
-```conda activate pyapetnet```
-
-```conda list```
-
-and check whether pyapetnet is in the list of installed packages.
+```python
+import pyapetnet
+print(pyapetnet.__version__)
+print(pyapetnet.__file__)
+```
