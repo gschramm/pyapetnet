@@ -60,21 +60,11 @@ nib.save(nib.Nifti1Image(pred, o_aff), f'prediction_{model_name}.nii')
 
 
 # show the results
-fig, ax = py.subplots(3,3, figsize = (9,9))
-ax[0,0].imshow(pet_preproc[:,::-1,pet_preproc.shape[2]//2].T, cmap = py.cm.Greys, vmax = pet_max)
-ax[0,1].imshow(pet_preproc[:,pet_preproc.shape[1]//2,::-1].T, cmap = py.cm.Greys, vmax = pet_max)
-ax[0,2].imshow(pet_preproc[pet_preproc.shape[0]//2,:,::-1].T, cmap = py.cm.Greys, vmax = pet_max)
-ax[1,0].imshow(mr_preproc[:,::-1,pet_preproc.shape[2]//2].T, cmap = py.cm.Greys_r, vmax = mr_max)
-ax[1,1].imshow(mr_preproc[:,pet_preproc.shape[1]//2,::-1].T, cmap = py.cm.Greys_r, vmax = mr_max)
-ax[1,2].imshow(mr_preproc[pet_preproc.shape[2]//2,:,::-1].T, cmap = py.cm.Greys_r, vmax = mr_max)
-ax[2,0].imshow(pred[:,::-1,pet_preproc.shape[2]//2].T, cmap = py.cm.Greys, vmax = pet_max)
-ax[2,1].imshow(pred[:,pet_preproc.shape[1]//2,::-1].T, cmap = py.cm.Greys, vmax = pet_max)
-ax[2,2].imshow(pred[pet_preproc.shape[0]//2,:,::-1].T, cmap = py.cm.Greys, vmax = pet_max)
-for axx in ax.flatten(): axx.set_axis_off()
+import pymirc.viewer as pv
+pmax = np.percentile(pred,99.9)
+mmax = np.percentile(mr_preproc,99.9)
 
-ax[0,1].set_title('input PET')
-ax[1,1].set_title('input MR')
-ax[2,1].set_title('predicted MAP Bowsher')
-
-fig.tight_layout()
-fig.show()
+ims = [{'vmin':0, 'vmax': mmax, 'cmap': py.cm.Greys_r}, 
+       {'vmin':0, 'vmax': pmax}, {'vmin':0, 'vmax': pmax}]
+pv.ThreeAxisViewer([np.flip(mr_preproc,(0,1)),np.flip(pet_preproc,(0,1)),np.flip(pred,(0,1))],
+                   imshow_kwargs = ims)
