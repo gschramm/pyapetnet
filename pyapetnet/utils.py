@@ -1,10 +1,8 @@
 import os
-from datetime import datetime
-import string
-
 import numpy as np
-#----------------------------------------------------------------------------------------------
+import nibabel as nib
 
+#----------------------------------------------------------------------------------------------
 def cross_product_matrix(a):
   # cross product matrix of a vector a
   # useful to contruct an affine matrix for a
@@ -20,7 +18,6 @@ def cross_product_matrix(a):
   return cpm
 
 #----------------------------------------------------------------------------------------------
-
 def rotation_matrix(uv, theta):
   # general rotation matrix for rotation around unit vector uv
 
@@ -35,7 +32,6 @@ def rotation_matrix(uv, theta):
   return R
 
 #----------------------------------------------------------------------------------------------
-
 def affine_center_rotation(uv, theta, uv_origin = None, offset = None):
   # affine trasnformation for rotation around unit vector uv through the center followd by shift
 
@@ -53,77 +49,13 @@ def affine_center_rotation(uv, theta, uv_origin = None, offset = None):
 
   return aff
 
-#----------------------------------------------------------------------------------------------
+#----------------------------------------------------------------------
+def load_nii_in_ras(fname):
+  """ function that loads nifti file and returns the volume and affine in 
+      RAS orientation
+  """
+  nii = nib.load(fname)
+  nii = nib.as_closest_canonical(nii)
+  vol = nii.get_fdata()
 
-def time_str():
-    timestamp = str(datetime.now())
-    s = ''
-    for c in timestamp:
-        if c not in string.ascii_letters:
-            if c not in string.digits:
-                s += '_'
-                continue
-        s += c
-
-    return s
-
-def ispath(p):
-    if type(p) is str:
-        if os.path.exists(p):
-            return True
-    
-    return False
-
-def normalize(x0):
-    intercept = x0.min()
-    slope = x0.max() - x0.min()
-    x = (x0 - intercept)/slope
-
-    norm_fun = lambda x : (x-intercept)/slope
-    norm_inv = lambda x : x*slope + intercept
-
-    return x, norm_fun, norm_inv
-
-def yell(msg, content, yell_char='!'):
-    
-    
-    line2 = '!!  {}  !!'.format(msg)
-    line1 = '!'*len(line2)
-    
-    header = '\n'.join((line1, line2, line1))
-    header = header.replace('!', yell_char)
-    footer = line1.replace('!',yell_char)
-
-    val = '\n'.join((header, content, footer))
-
-    return val
-
-#----------------------------------------------------------------------------------------------
-
-if __name__ == '__main__':
-
-  import numpy as np
-  import pynucmed as ni
-
-  from scipy.ndimage.interpolation import shift, rotate, affine_transform
-
-  n  = 97
-  m  = int(n//4)
-  img = np.zeros((n,n,n))
-  img[m:-m,m:-m,m:-m] = 1
-
-  img_center = np.array(img.shape)/2 - 0.5
-
-  uv = np.array([1,0,0])
-  uv = uv / np.linalg.norm(uv) 
-
-  aff1 = affine_center_rotation(uv, 45*np.pi/180, uv_origin = 0.5*img_center)
-  img1 = affine_transform(img, aff1, order = 1, prefilter = False)
-
-  vi = ni.viewer.ThreeAxisViewer([img,img1])
-   
-
-    
-        
-        
-    
+  return vol, nii.affine

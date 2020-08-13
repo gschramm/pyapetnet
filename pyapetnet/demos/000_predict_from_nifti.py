@@ -10,19 +10,7 @@ import matplotlib.pyplot as py
 
 import pyapetnet
 from pyapetnet.preprocessing import preprocess_volumes
-
-#----------------------------------------------------------------------
-def load_nii_in_ras(fname):
-  """ function that loads nifti file and returns the volume and affine in 
-      RAS orientation
-  """
-  nii = nib.load(fname)
-  nii = nib.as_closest_canonical(nii)
-  vol = nii.get_fdata()
-
-  return vol, nii.affine
-#----------------------------------------------------------------------
-#----------------------------------------------------------------------
+from pyapetnet.utils         import load_nii_in_ras
 
 #------
 # inputs
@@ -59,7 +47,7 @@ x = [np.expand_dims(np.expand_dims(pet_preproc,0),-1), np.expand_dims(np.expand_
 pred = model.predict(x).squeeze()
 
 # undo the intensity normalization
-pet_preproc*= pet_max
+pet_preproc *= pet_max
 mr_preproc  *= mr_max
 pred        *= pet_max
 
