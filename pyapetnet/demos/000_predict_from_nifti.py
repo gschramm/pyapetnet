@@ -12,13 +12,29 @@ import pyapetnet
 from pyapetnet.preprocessing import preprocess_volumes
 from pyapetnet.utils         import load_nii_in_ras
 
-#------
-# inputs
-pet_fname  = 'pet.nii'
-mr_fname   = 'mr.nii'
+#------------------------------------------------------------------
+# inputs (adapt to your needs)
+
+# the name of the trained CNN
 model_name = '200710_mae_osem_psf_bet_10'
 
-#------------------------------------------------------------------
+# we use a simulated demo data included in pyapetnet (based on the brainweb phantom)
+pet_fname  = os.path.join(os.path.dirname(pyapetnet.__file__), 'data', 'brainweb_06_osem.nii')
+mr_fname   = os.path.join(os.path.dirname(pyapetnet.__file__), 'data', 'brainweb_06_t1.nii')
+
+# preprocessing parameters
+
+coreg_inputs = False  # rigidly coregister PET and MR using mutual information
+crop_mr      = True   # crop the input to the support of the MR (saves memory + speeds up the computation)
+
+# the name of the ouput file
+output_fname =  f'prediction_{model_name}.nii'
+
+
+#--------------------------------------------------------------------------------------------------
+#--------------------------------------------------------------------------------------------------
+
+
 # load the trained CNN and its internal voxel size used for training
 co ={'ssim_3d_loss': None,'mix_ssim_3d_mae_loss': None}
 
@@ -38,7 +54,7 @@ mr, mr_affine   = load_nii_in_ras(mr_fname)
 
 # preprocess the input volumes (coregistration, interpolation and intensity normalization)
 pet_preproc, mr_preproc, o_aff, pet_max, mr_max = preprocess_volumes(pet, mr, 
-  pet_affine, mr_affine, training_voxsize, perc = 99.99, coreg = True, crop_mr = True)
+  pet_affine, mr_affine, training_voxsize, perc = 99.99, coreg = coreg_inputs, crop_mr = crop_mr)
 
 
 #------------------------------------------------------------------
