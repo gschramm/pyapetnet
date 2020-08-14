@@ -10,14 +10,32 @@ import matplotlib.pyplot as py
 
 import pyapetnet
 from pyapetnet.preprocessing import preprocess_volumes
-from pyapetnet.utils         import flip_ras_lps
-from pymirc.fileio import DicomVolume
+from pyapetnet.utils         import flip_ras_lps, create_demo_dcm_data, pet_dcm_keys_to_copy
 
-#------
-# inputs
-pet_dcm_pattern = os.path.join('pet_dcm','*')
-mr_dcm_pattern  = os.path.join('mr_dcm','*')
+from pymirc.fileio import DicomVolume, write_3d_static_dicom
+
+from warnings import warn
+
+#------------------------------------------------------------------
+# inputs (adapt to your needs)
+
+# create demo dicom data from the included nifti data sets
+# just needed in case no real data is available
+if not os.path.exists('demo_dcm'): create_demo_dcm_data('demo_dcm')
+
+pet_dcm_pattern = os.path.join('demo_dcm','PT','*.dcm')
+mr_dcm_pattern  = os.path.join('demo_dcm','MR','*.dcm')
+
+# the name of the trained CNN
 model_name = '200710_mae_osem_psf_bet_10'
+
+# output dicom dir
+output_dcm_dir = os.path.join('demo_dcm',f'prediction_{model_name}')
+
+
+# preprocessing parameters
+coreg_inputs = True   # rigidly coregister PET and MR using mutual information
+crop_mr      = True   # crop the input to the support of the MR (saves memory + speeds up the computation)
 
 #------------------------------------------------------------------
 # load the trained CNN and its internal voxel size used for training
@@ -45,7 +63,7 @@ mr_affine  = mr_dcm.affine
 
 # preprocess the input volumes (coregistration, interpolation and intensity normalization)
 pet_preproc, mr_preproc, o_aff, pet_max, mr_max = preprocess_volumes(pet, mr, 
-  pet_affine, mr_affine, training_voxsize, perc = 99.99, coreg = True, crop_mr = True)
+  pet_affine, mr_affine, training_voxsize, perc = 99.99, coreg = coreg_inputs, crop_mr = crop_mr)
 
 #------------------------------------------------------------------
 # the actual CNN prediction
@@ -65,7 +83,25 @@ nib.save(nib.Nifti1Image(*flip_ras_lps(pet_preproc, o_aff)), 'pet_preproc.nii')
 nib.save(nib.Nifti1Image(*flip_ras_lps(mr_preproc, o_aff)), 'mr_preproc.nii')
 nib.save(nib.Nifti1Image(*flip_ras_lps(pred, o_aff)), f'prediction_{model_name}.nii')
 
+#------------------------------------------------------------------
+# save prediction also as dicom
 
+# get a list of dicom keys to copy from the original PET dicom header
+dcm_kwargs = {}
+for key in pet_dcm_keys_to_copy():
+  try:
+    dcm_kwargs[key] = getattr(pet_dcm.firstdcmheader,key)
+  except AttributeError:
+    warn('Cannot copy tag ' + key)
+    
+# write the dicom volume  
+if not os.path.exists(output_dcm_dir):
+  write_3d_static_dicom(pred, output_dcm_dir, affine = o_aff, ReconstructionMethod = 'CNN MAP Bowsher', 
+                        SeriesDescription = f'CNN MAP Bowsher {model_name}', **dcm_kwargs)
+else:
+  warn('Output dicom directory already exists. Not ovewrting it')
+
+#------------------------------------------------------------------
 # show the results
 import pymirc.viewer as pv
 pmax = np.percentile(pred,99.9)

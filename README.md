@@ -62,5 +62,14 @@ To test the installation run (inside python or ipython)
 ```python
 import pyapetnet
 print(pyapetnet.__version__)
-print(pyapetnet.__file__)
+print(pyapetnet.__file__) 
 ```
+
+## Run demos
+
+To test whether your installation works, you can run
+the demo 000_predict_from_nifti.py demo (located in the
+pyapetnet/demos subfolder). 
+This demo shows hoe to do a prediction from nifti files. 
+By default, it uses simulated data which is included in
+the package.

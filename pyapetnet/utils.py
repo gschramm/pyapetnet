@@ -2,6 +2,8 @@ import os
 import numpy as np
 import nibabel as nib
 
+from pymirc.fileio import write_3d_static_dicom
+
 #----------------------------------------------------------------------------------------------
 def cross_product_matrix(a):
   # cross product matrix of a vector a
@@ -63,7 +65,6 @@ def load_nii_in_ras(fname):
 #----------------------------------------------------------------------
 def flip_ras_lps(vol, affine):
   """ flip a volume and its affine from RAS to LPS, or from LPS to RAS
-  
   """
   vol_flipped    = np.flip(vol, (0,1))
   affine_flipped = affine.copy()
@@ -71,3 +72,58 @@ def flip_ras_lps(vol, affine):
   affine_flipped[1,-1] = (-1 * affine @ np.array([0,vol.shape[1]-1,0,1]))[1]
 
   return vol_flipped, affine_flipped
+
+#----------------------------------------------------------------------
+
+def create_demo_dcm_data(dcm_dir):
+  """ convert the test data set from nifti to dicom
+  """
+  pet_fname  = os.path.join(os.path.dirname(__file__), 'data', 'brainweb_06_osem.nii')
+  mr_fname   = os.path.join(os.path.dirname(__file__), 'data', 'brainweb_06_t1.nii')
+  
+  pet, pet_affine = flip_ras_lps(*load_nii_in_ras(pet_fname))
+  mr, mr_affine   = flip_ras_lps(*load_nii_in_ras(mr_fname))
+
+  os.mkdir(dcm_dir)
+  write_3d_static_dicom(pet, os.path.join(dcm_dir, 'PT'), pet_affine, modality = 'PT')
+  write_3d_static_dicom(mr,  os.path.join(dcm_dir, 'MR'), mr_affine,  modality = 'MR')
+
+#----------------------------------------------------------------------
+
+def pet_dcm_keys_to_copy():
+  """  return a list of usefule PET dicom tags to copy
+  """
+  return ['AcquisitionDate',
+          'AcquisitionTime',
+          'ActualFrameDuration',
+          'AccessionNumber',
+          'DecayCorrection',
+          'DecayCorrectionDateTime',
+          'DecayFactor',
+          'DoseCalibrationFactor',
+          'FrameOfReferenceUID',
+          'FrameReferenceTime',
+          'InstitutionName',
+          'ManufacturerModelName',
+          'OtherPatientIDs',
+          'PatientAge',
+          'PatientBirthDate',
+          'PatientID',
+          'PatientName',
+          'PatientPosition',
+          'PatientSex',
+          'PatientWeight',
+          'ProtocolName',
+          'RadiopharmaceuticalInformationSequence',
+          'RescaleType',
+          'SeriesDate',
+          'SeriesTime',
+          'StudyDate',
+          'StudyDescription',
+          'StudyID',
+          'StudyInstanceUID',
+          'StudyTime',
+          'Units']
+    
+
+
