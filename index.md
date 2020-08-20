@@ -11,7 +11,7 @@ that the predictions are much faster compared to a classical iterative PET recon
 
 The package contains already trained CNN models, the source code for predictions
 from standard nifti and dicom images, and the source code to train your own model
-and is published under [MIT license](https://github.com/gschramm/pyapetnet/blob/master/LICENSE).
+and is published under [MIT license](LICENSE).
 
 ![architecture of pyapetnet](./figures/fig_1_apetnet.png)
 
@@ -25,7 +25,7 @@ Note that this demo by default runs on purely simulated data for which the model
 ## How to use it?
 
 If you want to use the package yourself, get the latest release from our 
-[github repository](https://github.com/gschramm/pyapetnet/releases) and follow the installation instructions [here](https://github.com/gschramm/pyapetnet/blob/master/README.md).
+[github repository](https://github.com/gschramm/pyapetnet/releases) and follow the installation instructions [here](README.md).
 
 Once installed, you can run a few demos that show how to make predictions from nifti or dicom
 files, or how to train your own model.
@@ -43,7 +43,7 @@ If you discover bugs or unexpected behavior, please create a new issue [here](ht
 
 ## FAQ
 
-**1. What input images are required for pyapetnet**
+**1. What input images are required for pyapetnet**?
 
 Our trained models require two 3D input images:
 
@@ -62,6 +62,10 @@ We release different CNNs that were trained on different data sets and with slig
 * Determine whether your PET OSEM reconstructions where reconstructed with or without resolution modeling. We release models that were trained on OSEM images reconstructed with and without resolution (point spread function) modeling.
 * Which level of regularization (resolution vs noise trade-off) you prefer. This is reflected in the beta parameter of the target MAP reconstruction using the Bowsher prior. Lower beta means less regularization (more noise) and higher beta values mean more regularization (less noise). For typical 5-20min static FDG brain acquisitions, beta = 10 is usually a good compromise. However, for other tracers and tasks different beta levels might be better. We recommend to try CNNs trained with different beta values.
 
+The subdirectory ```trained_models``` contains an overview file ([model_description.md](pyapetnet/trained_models/model_description.md) that describes what kind of data was used for the training of which model.
+
+*To guarantee reproducibility it is crucial to remember which trained model was used!*
+
 ---
 
 **3. Can I use the provided models for non-FDG acquisitions?**
@@ -70,7 +74,7 @@ It is our aim to train and release models that are independent of the PET tracer
 
 ---
 
-**4. Do I need data from hybrid PET/MR scanners to use pyapetnet**
+**4. Do I need data from hybrid PET/MR scanners to use pyapetnet?**
 
 No. The PET and MR images can come from different acquisitions (scanners). The preprocessing routines of pyapetnet have the possibility to rigidly align the input images by optimizing mutual information (see demos).
 
