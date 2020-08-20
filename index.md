@@ -13,6 +13,8 @@ The package contains already trained CNN models, the source code for predictions
 from standard nifti and dicom images, and the source code to train your own model
 and is published under [MIT license](https://github.com/gschramm/pyapetnet/blob/master/LICENSE).
 
+![architecture of pyapetnet](./figures/fig_1_apetnet.png)
+
 ## Live Demo
 
 An interactive online demo that does not require any installation (just a google account)
