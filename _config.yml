@@ -1,1 +1,4 @@
 theme: jekyll-theme-slate
+title: pyapetnet
+description: a CNN for anatomy-guided deconvolution and denoising of PET images
+show_downloads: true
