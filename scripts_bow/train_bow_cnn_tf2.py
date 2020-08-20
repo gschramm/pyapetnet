@@ -129,8 +129,7 @@ if loss == 'ssim':
 elif loss == 'mix_ssim_mae':
   loss    = mix_ssim_3d_mae_loss
 
-#metrics = [ssim_3d_loss, mix_ssim_3d_mae_loss, 'mse', 'mae']
-metrics = ['mse', 'mae']
+metrics = [ssim_3d_loss, mix_ssim_3d_mae_loss, 'mse', 'mae']
 
 parallel_model.compile(optimizer = Adam(lr = learning_rate), loss = loss, metrics = metrics)
 
