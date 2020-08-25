@@ -15,7 +15,7 @@ import seaborn as sns
 import pickle
 
 from glob            import glob
-from skimage.measure import compare_ssim as ssim
+from skimage.metrics import structural_similarity as ssim
 
 from pymirc.viewer import ThreeAxisViewer
 
@@ -173,14 +173,14 @@ for tracer in tracers:
     mr = zoom(mr, bbox_data['zoomfacs'], order = 1, prefilter = False)
   
     aparc = aparc[bbox_data['bbox']]
-    aparc = zoom(aparc, bbox_data['zoomfacs'], order = 1, prefilter = False)
+    aparc = zoom(aparc, bbox_data['zoomfacs'], order = 0, prefilter = False)
   
     df_file = os.path.splitext(prediction_file)[0] + '_regional_stats.csv'
   
     if (not os.path.exists(df_file)) or recompute:
       df             = regional_statistics(cnn_bow, bow, aparc)
       df["subject"]  = os.path.basename(pdir)
-      df['roiname']  = df['roinum'].apply(lambda x: roilut[roilut.num == x].roi.to_string(index = False))
+      df['roiname']  = df['roinum'].apply(lambda x: roilut[roilut.num == x].roi.to_string(index = False).strip())
       df['region']   = df["roiname"].apply(roi_to_region)
       df['bow_file'] = bow_file
       df             = df.reindex(columns=['subject','roinum','roiname','region','bow_file','nvox',
@@ -272,9 +272,3 @@ for metric in ['rc_mean','ssim']:
     sum_data = pd.concat([sum_data, tmp], axis = 1)
 
 sum_data.to_latex(os.path.join('figs',model_name.replace('.h5','.tex')), float_format = '{:,.3f}'.format) 
-
-
-
-
-
-
