@@ -162,16 +162,3 @@ history = parallel_model.fit(x                = ps,
 shutil.copytree(checkpoint_path, output_model_file)
 parallel_model.save(output_model_file + '_last')
 parallel_model.save(output_model_file + '_last.h5')
-
-# to load model include custom loss functions!
-m = tf.keras.models.load_model(output_model_file, custom_objects={'ssim_3d_loss':ssim_3d_loss, 'mix_ssim_3d_mae_loss':mix_ssim_3d_mae_loss})
-
-#-----------------------------------------------------------------------------------------------
-# show final prediction of validation data
-if has_x_disp:
-  from pymirc.viewer import ThreeAxisViewer
-  p = parallel_model.predict(validation_data[0])
-
-  imshow_kwargs = {'vmin':0, 'vmax':1.2}
-  vi = ThreeAxisViewer([p.squeeze(),validation_data[1].squeeze()], 
-                        imshow_kwargs = imshow_kwargs)
