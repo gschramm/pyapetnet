@@ -34,8 +34,10 @@ files, or how to train your own model.
 
 If you are using pyapetnet for your research, please cite our paper:
 
-G. Schramm et al., "Approximating anatomically-guided PET reconstruction in image
-space using a convolutional neural network", *under review* in NeuroImage
+G. Schramm et al., ["Approximating anatomically-guided PET reconstruction in image
+space using a convolutional neural network"](https://doi.org/10.1016/j.neuroimage.2020.117399), 
+*published online* in NeuroImage, DOI 10.1016/j.neuroimage.2020.117399
+
 
 ## Bug / problem reports
 
