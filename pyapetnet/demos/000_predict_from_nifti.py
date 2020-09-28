@@ -72,7 +72,7 @@ pred        *= pet_max
 # save the preprocessed input and output
 nib.save(nib.Nifti1Image(pet_preproc, o_aff), 'pet_preproc.nii')
 nib.save(nib.Nifti1Image(mr_preproc, o_aff), 'mr_preproc.nii')
-nib.save(nib.Nifti1Image(pred, o_aff), f'prediction_{model_name}.nii')
+nib.save(nib.Nifti1Image(pred, o_aff), output_fname)
 
 
 # show the results
