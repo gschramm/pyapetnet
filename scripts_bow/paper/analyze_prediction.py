@@ -201,11 +201,8 @@ for tracer in tracers:
                             sl_x = sl0, sl_y = sl1, sl_z = sl2, ls = '', rowlabels = ['T1 MR','OSEM','BOW','$BOW_{CNN}$'],
                             imshow_kwargs = [mr_imshow_kwargs] + 3*[pet_imshow_kwargs])
       vi.fig.savefig(os.path.splitext(prediction_file)[0] + '.png')
-      vi.fig_cb.savefig(os.path.splitext(prediction_file)[0] + '_cb.png')
   
       py.close(vi.fig)
-      py.close(vi.fig_cb)
-      py.close(vi.fig_sl)
     else:
       print('reading : ', df_file)
       df = pd.read_csv(df_file)
