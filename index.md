@@ -4,7 +4,7 @@ pyapetnet is a pure python package for training and use of convolutional
 neural network that does anatomy-guided deconvolution and denoising of PET images
 in image space.
 
-The idea pyapetnet is to obtain the image quality of MAP PET reconstructions
+The idea of pyapetnet is to obtain the image quality of MAP PET reconstructions
 using an anatomical prior (the asymmetric Bowsher prior) using a CNN in image space.
 The latter has the advantage that (a) no access to PET raw data is needed and (b)
 that the predictions are much faster compared to a classical iterative PET reconstruction.
