@@ -4,12 +4,16 @@ A convolutional neurol network (CNN) to mimick the behavior of anatomy-guided PE
 
 ## Authors
 
-Georg Schramm
-David Rigie
+Georg Schramm, David Rigie
 
 ## License 
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details
+
+## Scientific Publication
+
+Details about pyapetnet are published in [Schramm et al., "Approximating anatomically-guided PET reconstruction in image space using a convolutional neural network" ,NeuroImage Vol 224 2021](https://doi.org/10.1016/j.neuroimage.2020.117399).
+If we you are using pyapetnet in scientific publications, we appreciate citation of this article.
 
 ## Installation
 
