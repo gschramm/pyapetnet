@@ -65,11 +65,19 @@ print(pyapetnet.__version__)
 print(pyapetnet.__file__) 
 ```
 
-## Run demos
+If the installation was successful, a number of command line scripts all starting with pyapetnet* to e.g. do predictions with the included trained models from nifti and dicom input images will be available.
 
-To test whether your installation works, you can run
-the demo 000_predict_from_nifti.py demo (located in the
-pyapetnet/demos subfolder). 
-This demo shows hoe to do a prediction from nifti files. 
-By default, it uses simulated data which is included in
-the package.
+## Run your first prediction
+
+To run a prediction using one of included pre-trained networks, run e.g.:
+```
+pyapetnet_predict_from_nifti osem.nii t1.nii S2_osem_b10_fdg_pe2i --show
+```
+Use the following to get information on the (optional) input arguments
+```
+pyapetnet_predict_from_nifti -h
+```
+To get a list of available pre-trained models run
+```
+pyapetnet_list_models
+```

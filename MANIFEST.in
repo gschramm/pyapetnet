@@ -1,3 +1,1 @@
 recursive-include pyapetnet/trained_models *
-recursive-include pyapetnet/demos *
-recursive-include pyapetnet/data *
