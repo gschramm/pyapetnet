@@ -2,6 +2,8 @@
 
 A convolutional neurol network (CNN) to mimick the behavior of anatomy-guided PET reconstruction in image space.
 
+![](/uz/data/Admin/ngeresearch/georgschramm/pyapetnet/figures/fig_1_apetnet.png | width=8s00)
+
 ## Authors
 
 Georg Schramm, David Rigie
