@@ -40,10 +40,12 @@ which should list the installed basic python packages.
 
 ### Creation of the virtual conda environment
 
-To create a virtual conda python=3.x environment execute
+To create a virtual conda python=3.8 environment execute
 ```
-conda create -n pyapetnet python=3 ipython
+conda create -n pyapetnet python=3.8 ipython
 ```
+You can also you a newer version of python, if supported
+by tensorflow.
 To test the installation of the virual environment, execute
 ```
 conda activate pyapetnet
