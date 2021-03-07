@@ -2,7 +2,7 @@
 
 A convolutional neurol network (CNN) to mimick the behavior of anatomy-guided PET reconstruction in image space.
 
-![](./figures/fig_1_apetnet.png | width=800)
+![architecture of pyapetnet](./figures/fig_1_apetnet.png)
 
 ## Authors
 
