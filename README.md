@@ -59,10 +59,9 @@ Activate the virual conda environment
 ```
 conda activate pyapetnet
 ```
-To install the pyapetnet package run (replace X.Y.Z with the latest release
-version that can be found on https://github.com/gschramm/pyapetnet/releases)
+The easiest is to install pyapetnet simply from the python package index via
 ```
-pip install https://github.com/gschramm/pyapetnet/archive/vX.Y.Z.zip
+pip install pyapetnet
 ```
 which will install the pyapetnet package inside the virtual
 conda environment.
