@@ -124,7 +124,9 @@ def predict_from_nifti():
   pred = model.predict(x).squeeze()
   
   # undo the intensity normalization
-  pred *= pet_scale
+  pred        *= pet_scale
+  pet_preproc *= pet_scale
+  mr_preproc  *= mr_scale
   
   #------------------------------------------------------------------
   # save the preprocessed input and output
@@ -137,12 +139,12 @@ def predict_from_nifti():
     nib.save(nib.Nifti1Image(mr_preproc, o_aff), os.path.join(output_dir, 'mr_preproc.nii'))
     if verbose: print('wrote pre-processed MR  to: {os.path.join(output_dir, "mr_preproc.nii")}')
 
+    # save the intensity normalization factors
+    np.savetxt(os.path.join(output_dir, 'preproc_scaling_factors.txt'), np.array([pet_scale,mr_scale]))
+    if verbose: print('wrote scaling factors   to: {os.path.join(output_dir, "preproc_scaling_factors.txt")}')
+
   nib.save(nib.Nifti1Image(pred, o_aff), os.path.join(output_dir, output_name))
   if verbose: print('wrote prediction to       : {os.path.join(output_dir, output_name)}')
-
-  # undo the intensity normalization
-  pet_preproc *= pet_scale
-  mr_preproc  *= mr_scale
   
   #------------------------------------------------------------------
   # show the results
@@ -265,6 +267,8 @@ def predict_from_dicom():
   
   # undo the intensity normalization
   pred        *= pet_max
+  pet_preproc *= pet_max
+  mr_preproc  *= mr_max
 
   #------------------------------------------------------------------
   # save the preprocessed input and output
@@ -281,8 +285,10 @@ def predict_from_dicom():
   nib.save(nib.Nifti1Image(*flip_ras_lps(pred, o_aff)),        
                            os.path.join(output_dir, f'{output_name}.nii'))
   
-  pet_preproc *= pet_max
-  mr_preproc  *= mr_max
+    # save the intensity normalization factors
+    np.savetxt(os.path.join(output_dir, 'preproc_scaling_factors.txt'), np.array([pet_scale,mr_scale]))
+    if verbose: print('wrote scaling factors   to: {os.path.join(output_dir, "preproc_scaling_factors.txt")}')
+
   #------------------------------------------------------------------
   # save prediction also as dicom
   
