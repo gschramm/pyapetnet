@@ -282,12 +282,13 @@ def predict_from_dicom():
     nib.save(nib.Nifti1Image(*flip_ras_lps(mr_preproc, o_aff)),  
                              os.path.join(output_dir, 'mr_preproc.nii'))
     if verbose: print('wrote pre-processed MR  to: {os.path.join(output_dir, "mr_preproc.nii")}')
-  nib.save(nib.Nifti1Image(*flip_ras_lps(pred, o_aff)),        
-                           os.path.join(output_dir, f'{output_name}.nii'))
-  
+
     # save the intensity normalization factors
     np.savetxt(os.path.join(output_dir, 'preproc_scaling_factors.txt'), np.array([pet_scale,mr_scale]))
     if verbose: print('wrote scaling factors   to: {os.path.join(output_dir, "preproc_scaling_factors.txt")}')
+
+  nib.save(nib.Nifti1Image(*flip_ras_lps(pred, o_aff)),        
+                           os.path.join(output_dir, f'{output_name}.nii'))
 
   #------------------------------------------------------------------
   # save prediction also as dicom
