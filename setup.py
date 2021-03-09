@@ -27,7 +27,7 @@ setuptools.setup(
                       'nibabel>=3.0',
                       'matplotlib>=3.1',
                       'pydicom>=2.0',
-                      'pymirc @ https://github.com/gschramm/pymirc/archive/v0.22.zip'],
+                      'pymirc>=0.22'],
     entry_points = {'console_scripts' : ['pyapetnet_predict_from_nifti=pyapetnet.command_line_tools:predict_from_nifti','pyapetnet_predict_from_dicom=pyapetnet.command_line_tools:predict_from_dicom', 'pyapetnet_list_models=pyapetnet.command_line_tools:list_models',],},
     include_package_data=True,
 )
