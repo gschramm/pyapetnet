@@ -16,7 +16,7 @@ setuptools.setup(
     license='MIT',
     long_description_content_type="text/markdown",
     url="https://github.com/gschramm/pyapetnet",
-    packages=setuptools.find_packages(exclude = ["demo_data","figures","pyapetnet_2d","script_bow","wip"]),
+    packages=setuptools.find_packages(exclude = ["demo_data","figures","pyapetnet_2d","scripts_bow","wip"]),
     classifiers=[
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: MIT License",

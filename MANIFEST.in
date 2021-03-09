@@ -1,1 +1,7 @@
 recursive-include pyapetnet/trained_models *
+
+recursive-exclude demo_data *
+recursive-exclude figures *
+recursive-exclude pyapetnet_2d *
+recursive-exclude scripts_bow *
+recursive-exclude wip *
