@@ -5,3 +5,4 @@
 |200824_mae_osem_psf_bet_10   | [18F]FDG, [18F]PE2I          | with    PSF modeling | 10                                           | MAE           | similar to publication model, but trained with MAE and slightly better performance |
 |S1_osem_b10_fdg              | [18F]FDG                     | without PSF modeling | 10                                           | MAE           | model trained on FDG OSEMs w/o PSF modeling and 2 and 3mm post-smoothing           |
 |S2_osem_b10_fdg _pe2i        | [18F]FDG, [18F]PE2I          | without PSF modeling | 10                                           | MAE           | model trained on FDG and PE2I OSEMs w/o PSF modeling and 2 and 3mm post-smoothing  |
+|S3_osem_b10_fdg _pe2i        | [18F]FDG, [18F]PE2I          | without PSF modeling | 10                                           | MAE           | model trained on FDG and PE2I OSEMs w/o PSF modeling and 2 and 3mm post-smoothing  |
