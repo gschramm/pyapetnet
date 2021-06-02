@@ -14,11 +14,10 @@ def brainweb(brainweb_raw_dir = os.path.join('..','data','training_data','brainw
              csf_contrast     = 0.05,
              skin_contrast    = 0.5,
              fat_contrast     = 0.25,
-             bone_contrast    = 0.1):
+             bone_contrast    = 0.1,
+             blood_contrast   = 0.8):
 
   dmodel_path = os.path.join(brainweb_raw_dir, subject + '_crisp_v.mnc.gz')
-  gm_path     = os.path.join(brainweb_raw_dir, subject + '_gm_v.mnc.gz')
-  wm_path     = os.path.join(brainweb_raw_dir, subject + '_wm_v.mnc.gz')
   t1_path     = os.path.join(brainweb_raw_dir, subject + '_t1w_p4.mnc.gz')
   
   # the simulated t1 has different voxel size and FOV)
@@ -27,20 +26,23 @@ def brainweb(brainweb_raw_dir = os.path.join('..','data','training_data','brainw
   
   dmodel_voxsize = np.sqrt((dmodel_affine**2).sum(0))[:-1]
   t1_voxsize     = np.sqrt((t1_affine**2).sum(0))[:-1]
-  
-  dmodel = nib.load(dmodel_path).get_data()
-  gm     = nib.load(gm_path).get_data()
-  wm     = nib.load(wm_path).get_data()
-  
-  t1     = nib.load(t1_path).get_data()
  
-  pet_gt = (gm_contrast*gm + 
-            wm_contrast*wm + 
+  dmodel = nib.load(dmodel_path).get_data()
+  t1     = nib.load(t1_path).get_data()
+
+  # create low frequent variation in GM
+  v  = gaussian_filter(np.random.rand(*dmodel.shape), 30)
+  v *= (0.1/v.std())
+  v += (1 - v.mean())
+ 
+  pet_gt = (gm_contrast*v*(dmodel == 2) + 
+            wm_contrast*(dmodel == 3) + 
             skin_contrast*(dmodel == 5) + 
             skin_contrast*(dmodel == 6) + 
             fat_contrast*(dmodel == 4) + 
             bone_contrast*(dmodel == 7) + 
             bone_contrast*(dmodel == 11) + 
+            blood_contrast*(dmodel == 8) + 
             csf_contrast*(dmodel == 1))
 
   # the dmodel has half the voxel size of the T1
