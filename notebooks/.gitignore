@@ -1,2 +1,3 @@
 *.nii
 model_*
+brainweb_petmr/*
