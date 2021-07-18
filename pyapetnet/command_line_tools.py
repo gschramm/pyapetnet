@@ -257,7 +257,7 @@ def predict_from_dicom():
   mr_affine  = mr_dcm.affine
   
   # preprocess the input volumes (coregistration, interpolation and intensity normalization)
-  pet_preproc, mr_preproc, o_aff, pet_max, mr_max = preprocess_volumes(pet, mr, 
+  pet_preproc, mr_preproc, o_aff, pet_scale, mr_scale = preprocess_volumes(pet, mr, 
     pet_affine, mr_affine, training_voxsize, perc = 99.99, coreg = coreg_inputs, crop_mr = crop_mr)
   
   #------------------------------------------------------------------
@@ -266,9 +266,9 @@ def predict_from_dicom():
   pred = model.predict(x).squeeze()
   
   # undo the intensity normalization
-  pred        *= pet_max
-  pet_preproc *= pet_max
-  mr_preproc  *= mr_max
+  pred        *= pet_scale
+  pet_preproc *= pet_scale
+  mr_preproc  *= mr_scale
 
   #------------------------------------------------------------------
   # save the preprocessed input and output
