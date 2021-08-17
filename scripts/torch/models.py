@@ -5,11 +5,13 @@ import pytorch_lightning as pl
 from collections import OrderedDict
 
 class APetNet(pl.LightningModule):
-  def __init__(self, loss = torch.nn.L1Loss()):
+  def __init__(self, loss = torch.nn.L1Loss(), petOnly = False):
     super().__init__()
 
-    self.model = self.seq_model()
-    self.loss  = loss
+    self.loss    = loss
+    self.petOnly = petOnly
+
+    self.model   = self.seq_model()
 
   #---------------------------------------------
   def forward(self, x):
@@ -25,9 +27,14 @@ class APetNet(pl.LightningModule):
 
   #---------------------------------------------
   def step(self, batch, batch_idx, mode = 'training'):
-    x0 = batch['pet_low'][tio.DATA]
-    x1 = batch['mr'][tio.DATA]
-    x  = torch.cat((x0,x1),1)
+
+    if self.petOnly:
+      x  = batch['pet_low'][tio.DATA]
+    else:
+      x0 = batch['pet_low'][tio.DATA]
+      x1 = batch['mr'][tio.DATA]
+      x  = torch.cat((x0,x1),1)
+
     y  = batch['pet_high'][tio.DATA]
     
     y_hat = self.forward(x)
@@ -69,7 +76,10 @@ class APetNet(pl.LightningModule):
     
     od = OrderedDict()
     # add first conv layer 
-    od['b0'] = self.conv_act_block(2, nfeat, self.device, kernel_size = (3,3,3))
+    if self.petOnly:
+      od['b0'] = self.conv_act_block(1, nfeat, self.device, kernel_size = (3,3,3))
+    else:
+      od['b0'] = self.conv_act_block(2, nfeat, self.device, kernel_size = (3,3,3))
     
     for i in range(nblocks):
       od[f'b{i+1}'] = self.conv_act_block(nfeat, nfeat, self.device, kernel_size = (3,3,3))

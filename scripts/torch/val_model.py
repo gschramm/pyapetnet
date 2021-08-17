@@ -53,7 +53,7 @@ for i, sdir in enumerate(sdirs):
 #-------------------------------------------------------------------------------------------------
 #-------------------------------------------------------------------------------------------------
 
-model = APetNet().load_from_checkpoint('./lightning_logs/version_2/checkpoints/epoch=216-step=14755.ckpt')
+model = APetNet().load_from_checkpoint('lightning_logs/version_4/checkpoints/epoch=1014-step=69019.ckpt')
 
 #--------------------------------------------------------------------------------------
 device = torch.device('cuda') if torch.cuda.is_available() else 'cpu'
@@ -72,4 +72,4 @@ for i, vsub in enumerate(validation_subjects):
   y = vsub['pet_high'][tio.DATA].numpy().squeeze()
   
   import pymirc.viewer as pv
-  vis.append(pv.ThreeAxisViewer([x0.numpy().squeeze(),p,y], imshow_kwargs={'vmin':0, 'vmax':1}))
+  vis.append(pv.ThreeAxisViewer([np.flip(z,(0,1)) for z in [x0.numpy().squeeze(),p,y]], imshow_kwargs={'vmin':0, 'vmax':1}))

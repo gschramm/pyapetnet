@@ -21,6 +21,7 @@ num_workers         = os.cpu_count() - 1
 patch_size          = 29
 samples_per_volume  = 32
 max_queue_length    = ntrain*samples_per_volume
+petOnly             = False
 
 #-------------------------------------------------------------------------------------------------
 sdirs = list(data_dir.glob('subject??'))
@@ -103,27 +104,31 @@ validation_loader = torch.utils.data.DataLoader(
 
 checkpoint_callback = pl.callbacks.ModelCheckpoint(monitor = "val_loss")
 
-model = APetNet()
+model = APetNet(petOnly = petOnly)
 trainer = pl.Trainer(gpus = 1, min_epochs = 0, max_epochs = 250, callbacks = [checkpoint_callback])
 trainer.fit(model, training_loader_patches, validation_loader)
 
 print(checkpoint_callback.best_model_path)
 
 #--------------------------------------------------------------------------------------
+import pymirc.viewer as pv
+
 device = torch.device('cuda') if torch.cuda.is_available() else 'cpu'
 model.to(device)
 
 vis = []
 
 for i, vsub in enumerate(validation_subjects):
-  x0 = vsub['pet_low'][tio.DATA].unsqueeze(0)
-  x1 = vsub['mr'][tio.DATA].unsqueeze(0)
-  x  = torch.cat((x0,x1),1).to(device)
+  if petOnly:
+    x  = vsub['pet_low'][tio.DATA].unsqueeze(0).to(device)
+  else:
+    x0 = vsub['pet_low'][tio.DATA].unsqueeze(0)
+    x1 = vsub['mr'][tio.DATA].unsqueeze(0)
+    x  = torch.cat((x0,x1),1).to(device)
   
   with torch.no_grad():
     p = model.forward(x).detach().cpu().numpy().squeeze()
   
   y = vsub['pet_high'][tio.DATA].numpy().squeeze()
   
-  import pymirc.viewer as pv
-  vis.append(pv.ThreeAxisViewer([x0.numpy().squeeze(),p,y], imshow_kwargs={'vmin':0, 'vmax':1}))
+  vis.append(pv.ThreeAxisViewer([x[0,0,...].cpu().numpy().squeeze(),p,y], imshow_kwargs={'vmin':0, 'vmax':1}))
