@@ -36,7 +36,7 @@ class APetNet(pl.LightningModule):
       x  = torch.cat((x0,x1),1)
 
     y  = batch['pet_high'][tio.DATA]
-    
+
     y_hat = self.forward(x)
 
     loss = self.loss(y_hat, y)
