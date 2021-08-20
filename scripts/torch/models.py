@@ -54,18 +54,18 @@ class APetNet(pl.LightningModule):
 
   #---------------------------------------------
   def conv_act_block(self, in_channels, out_channels, device, kernel_size = (3,3,3), 
-                     activation = None, batchnorm = True):
+                     activation = None, batchnorm = True, groups = 1):
   
     od = OrderedDict()
   
-    od['conv'] = torch.nn.Conv3d(in_channels = in_channels, out_channels = out_channels, 
+    od['conv'] = torch.nn.Conv3d(in_channels = in_channels, out_channels = out_channels, groups = groups,
                                  kernel_size = kernel_size, padding = 'same', device = self.device)
    
     if batchnorm:
       od['bnorm'] =  torch.nn.BatchNorm3d(out_channels, device = self.device)
   
     if activation is None:
-      od['act'] = torch.nn.PReLU(num_parameters = 1, device = self.device)
+      od['act'] = torch.nn.PReLU(num_parameters = out_channels, device = self.device)
     else:
       od['act'] = activation
   
@@ -79,7 +79,8 @@ class APetNet(pl.LightningModule):
     if self.petOnly:
       od['b0'] = self.conv_act_block(1, nfeat, self.device, kernel_size = (3,3,3))
     else:
-      od['b0'] = self.conv_act_block(2, nfeat, self.device, kernel_size = (3,3,3))
+      # we use groups = 2 to have seperate convolutions of the two input channels in the first block
+      od['b0'] = self.conv_act_block(2, nfeat, self.device, kernel_size = (3,3,3), groups = 2)
     
     for i in range(nblocks):
       od[f'b{i+1}'] = self.conv_act_block(nfeat, nfeat, self.device, kernel_size = (3,3,3))

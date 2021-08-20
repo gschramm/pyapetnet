@@ -26,8 +26,8 @@ args = parser.parse_args()
 
 training_batch_size = 50
 num_workers         = os.cpu_count() - 1
-patch_size          = 29
-samples_per_volume  = 10
+patch_size          = 39
+samples_per_volume  = 20
 petOnly             = False
 internal_voxsize    = np.ones(3)
 nsl                 = 150
@@ -153,6 +153,8 @@ print(checkpoint_callback.best_model_path)
 
 #--------------------------------------------------------------------------------------
 import pymirc.viewer as pv
+
+model = APetNet.load_from_checkpoint(checkpoint_callback.best_model_path)
 
 device = torch.device('cuda') if torch.cuda.is_available() else 'cpu'
 model.to(device)
