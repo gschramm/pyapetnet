@@ -9,16 +9,19 @@ def preprocess_volumes(pet_vol, mr_vol, pet_affine, mr_affine, training_voxsize,
                        perc = 99.99, coreg = True, crop_mr = True, 
                        mr_ps_fwhm_mm = None, verbose = False):
 
+  # make a copy of the mr_affine since we will modify it and return
+  m_aff = mr_affine.copy()
+
   # get voxel sizes from affine matrices
-  pet_voxsize = np.sqrt((pet_affine**2).sum(axis = 0))[:-1]
-  mr_voxsize  = np.sqrt((mr_affine**2).sum(axis = 0))[:-1]
+  pet_voxsize = np.linalg.norm(pet_affine[:-1,:-1], axis = 0)
+  mr_voxsize  = np.linalg.norm(m_aff[:-1,:-1], axis = 0)
 
   # crop the MR if needed
   if crop_mr:
     bbox              = find_objects(mr_vol > 0.1*mr_vol.max(), max_label = 1)[0]
     mr_vol            = mr_vol[bbox]
     crop_origin       = np.array([x.start for x in bbox] + [1])
-    mr_affine[:-1,-1] = (mr_affine @ crop_origin)[:-1]
+    m_aff[:-1,-1]     = (m_aff @ crop_origin)[:-1]
 
   # post-smooth MR if needed
   if mr_ps_fwhm_mm is not None:
@@ -29,16 +32,16 @@ def preprocess_volumes(pet_vol, mr_vol, pet_affine, mr_affine, training_voxsize,
   # if coreg is False, it is simply deduced from the affine transformation
   # otherwise, rigid registration with mutual information is used
   if coreg:
-    _, regis_aff, _ = rigid_registration(pet_vol, mr_vol, pet_affine, mr_affine)
+    _, regis_aff, _ = rigid_registration(pet_vol, mr_vol, pet_affine, m_aff)
   else:
-    regis_aff = np.linalg.inv(pet_affine) @ mr_affine
+    regis_aff = np.linalg.inv(pet_affine) @ m_aff
 
   # interpolate both volumes to the voxel size used during training
   zoomfacs = mr_voxsize / training_voxsize
   if not np.all(np.isclose(zoomfacs, np.ones(3))):
     if verbose: print('interpolationg input volumes to training voxel size')
     mr_vol_interpolated = zoom3d(mr_vol, zoomfacs)
-    mr_affine = mr_affine @ np.diag(np.concatenate((1./zoomfacs,[1])))
+    m_aff = m_aff @ np.diag(np.concatenate((1./zoomfacs,[1])))
   else:
     mr_vol_interpolated = mr_vol.copy()
 
@@ -67,4 +70,4 @@ def preprocess_volumes(pet_vol, mr_vol, pet_affine, mr_affine, training_voxsize,
   pet_vol_mr_grid_interpolated /= pet_max
 
 
-  return pet_vol_mr_grid_interpolated, mr_vol_interpolated, mr_affine, pet_max, mr_max
+  return pet_vol_mr_grid_interpolated, mr_vol_interpolated, m_aff, pet_max, mr_max
