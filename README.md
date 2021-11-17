@@ -19,54 +19,18 @@ If we you are using pyapetnet in scientific publications, we appreciate citation
 
 ## Installation
 
-We recommend to use the anaconda python distribution and to create a
-conda virtual environment for pyapetnet.
+We recommend to use the anaconda python distribution and to create a conda virtual environment for pyapetnet. The pyapetnet package and its dependencies are available as conda package on the channels gschramm and conda-forge.
 
-The installation consists of three steps:
-1. Installation of anaconda (miniconda) python distribution
-2. Creation of the conda virtual environment with all dependencies
-3. Installation of the pyapetnet package using pip
-
-### Installation of anaconda (miniconda)
-
-Download and install Miniconda from <https://docs.conda.io/en/latest/miniconda.html>.
-
-Please use the ***Python 3.x*** installer and confirm that the installer
-should run ```conda init``` at the end of the installtion process.
-
-To test your miniconda installtion, open a new terminal and execute
+To create a virtual environment called ```pyapetnet``` and to install the package and all its dependencies execute:
 ```
-conda list
+conda create -n pyapetnet -c conda-forge -c gschramm pyapetnet
 ```
-which should list the installed basic python packages.
 
-### Creation of the virtual conda environment
-
-To create a virtual conda python=3.8 environment execute
-```
-conda create -n pyapetnet python=3.8 ipython
-```
-You can also you a newer version of python, if supported
-by tensorflow.
-To test the installation of the virual environment, execute
+To test the installation activate the virtual conda environment
 ```
 conda activate pyapetnet
 ```
-
-### Installation of the pyapetnet package
-
-Activate the virual conda environment
-```
-conda activate pyapetnet
-```
-The easiest is to install pyapetnet simply from the python package index via
-```
-pip install pyapetnet
-```
-which will install the pyapetnet package inside the virtual
-conda environment.
-
-To test the installation run (inside python or ipython)
+and run
 ```python
 import pyapetnet
 print(pyapetnet.__version__)
