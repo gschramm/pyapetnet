@@ -50,6 +50,8 @@ def predict_from_nifti():
   parser.add_argument('--verbose',     help = 'print (extra) verbose output', action = 'store_true')
   parser.add_argument('--no_preproc_save', help = 'do not save preprocessed volumes', 
                                            action = 'store_true')
+  parser.add_argument('--output_on_mr_grid', help = 'regrid the CNN output to the original MR grid', 
+                                             action = 'store_true')
   
   args = parser.parse_args()
 
@@ -67,6 +69,7 @@ def predict_from_nifti():
   import numpy as np
   import matplotlib.pyplot as plt
   import pymirc.viewer as pv
+  from pymirc.image_operations import aff_transform
 
   #-------------------------------------------------------------------------------------------------
   # parse input parameters
@@ -90,7 +93,7 @@ def predict_from_nifti():
   show         = args.show
   verbose      = args.verbose
   save_preproc = not args.no_preproc_save
-
+  output_on_mr_grid = args.output_on_mr_grid
 
   #-------------------------------------------------------------------------------------------------
   # load the trained model
@@ -143,7 +146,13 @@ def predict_from_nifti():
     np.savetxt(os.path.join(output_dir, 'preproc_scaling_factors.txt'), np.array([pet_scale,mr_scale]))
     if verbose: print('wrote scaling factors   to: {os.path.join(output_dir, "preproc_scaling_factors.txt")}')
 
-  nib.save(nib.Nifti1Image(pred, o_aff), os.path.join(output_dir, output_name))
+  if output_on_mr_grid:
+    oss = np.ceil(np.linalg.norm(mr_affine[:-1,:-1], axis = 0)/training_voxsize).astype(int)
+    pred_regrid = aff_transform(pred, np.linalg.inv(o_aff) @ mr_affine, mr.shape, cval = pred.min(),
+                                os0 = oss[0], os1 = oss[1], os2 = oss[2]) 
+    nib.save(nib.Nifti1Image(pred_regrid, mr_affine), os.path.join(output_dir, output_name))
+  else:
+    nib.save(nib.Nifti1Image(pred, o_aff), os.path.join(output_dir, output_name))
   if verbose: print('wrote prediction to       : {os.path.join(output_dir, output_name)}')
   
   #------------------------------------------------------------------
@@ -183,6 +192,8 @@ def predict_from_dicom():
   parser.add_argument('--verbose',     help = 'print (extra) verbose output', action = 'store_true')
   parser.add_argument('--no_preproc_save', help = 'do not save preprocessed volumes', 
                                            action = 'store_true')
+  parser.add_argument('--output_on_mr_grid', help = 'regrid the CNN output to the original MR grid', 
+                                             action = 'store_true')
   
   args = parser.parse_args()
 
@@ -201,6 +212,7 @@ def predict_from_dicom():
   import numpy as np
   import matplotlib.pyplot as plt
   import pymirc.viewer as pv
+  from pymirc.image_operations import aff_transform
 
   from pyapetnet.utils import flip_ras_lps, pet_dcm_keys_to_copy
   from warnings import warn
@@ -229,6 +241,7 @@ def predict_from_dicom():
   show         = args.show
   verbose      = args.verbose
   save_preproc = not args.no_preproc_save
+  output_on_mr_grid = args.output_on_mr_grid
 
   #-------------------------------------------------------------------------------------------------
   # load the trained model
@@ -287,8 +300,15 @@ def predict_from_dicom():
     np.savetxt(os.path.join(output_dir, 'preproc_scaling_factors.txt'), np.array([pet_scale,mr_scale]))
     if verbose: print('wrote scaling factors   to: {os.path.join(output_dir, "preproc_scaling_factors.txt")}')
 
-  nib.save(nib.Nifti1Image(*flip_ras_lps(pred, o_aff)),        
-                           os.path.join(output_dir, f'{output_name}.nii'))
+  if output_on_mr_grid:
+    oss = np.ceil(np.linalg.norm(mr_affine[:-1,:-1], axis = 0)/training_voxsize).astype(int)
+    pred_regrid = aff_transform(pred, np.linalg.inv(o_aff) @ mr_affine, mr.shape, cval = pred.min(),
+                                os0 = oss[0], os1 = oss[1], os2 = oss[2]) 
+    nib.save(nib.Nifti1Image(*flip_ras_lps(pred_regrid, mr_affine)), 
+                             os.path.join(output_dir, f'{output_name}.nii'))
+  else:
+    nib.save(nib.Nifti1Image(*flip_ras_lps(pred, o_aff)), 
+                             os.path.join(output_dir, f'{output_name}.nii'))
 
   #------------------------------------------------------------------
   # save prediction also as dicom
@@ -304,9 +324,14 @@ def predict_from_dicom():
   # write the dicom volume  
   output_dcm_dir = os.path.join(output_dir, output_name)
   if not os.path.exists(output_dcm_dir):
-    write_3d_static_dicom(pred, output_dcm_dir, affine = o_aff, 
-                          ReconstructionMethod = 'CNN MAP Bowsher', 
-                          SeriesDescription = f'CNN MAP Bowsher {model_name}', **dcm_kwargs)
+    if output_on_mr_grid:
+      write_3d_static_dicom(pred_regrid, output_dcm_dir, affine = mr_affine, 
+                            ReconstructionMethod = 'CNN MAP Bowsher', 
+                            SeriesDescription = f'CNN MAP Bowsher {model_name}', **dcm_kwargs)
+    else:
+      write_3d_static_dicom(pred, output_dcm_dir, affine = o_aff, 
+                            ReconstructionMethod = 'CNN MAP Bowsher', 
+                            SeriesDescription = f'CNN MAP Bowsher {model_name}', **dcm_kwargs)
   else:
     warn('Output dicom directory already exists. Not ovewrting it')
   
