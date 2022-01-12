@@ -28,11 +28,17 @@ def preprocess_volumes(pet_vol, mr_vol, pet_affine, mr_affine, training_voxsize,
     print(f'post-smoothing MR with {mr_ps_fwhm_mm} mm')
     mr_vol = gaussian_filter(mr_vol, mr_ps_fwhm_mm / (2.35*mr_voxsize))
 
+  # make sure we only register a single volume
+  if (pet_vol.ndim == 4):
+    pet_vol_reg = pet_vol.sum(axis = 3)
+  else:
+    pet_vol_reg = pet_vol
+
   # regis_aff is the affine transformation that maps from the PET to the MR grid
   # if coreg is False, it is simply deduced from the affine transformation
   # otherwise, rigid registration with mutual information is used
   if coreg:
-    _, regis_aff, _ = rigid_registration(pet_vol, mr_vol, pet_affine, m_aff)
+    _, regis_aff, _ = rigid_registration(pet_vol_reg, mr_vol, pet_affine, m_aff)
   else:
     regis_aff = np.linalg.inv(pet_affine) @ m_aff
 
@@ -50,8 +56,14 @@ def preprocess_volumes(pet_vol, mr_vol, pet_affine, mr_affine, training_voxsize,
   pet_mr_interp_aff = regis_aff @ np.diag(np.concatenate((1./zoomfacs,[1])))
 
   if not np.all(np.isclose(pet_mr_interp_aff, np.eye(4))):
-    pet_vol_mr_grid_interpolated = aff_transform(pet_vol, pet_mr_interp_aff, mr_vol_interpolated.shape, 
+    if (pet_vol.ndim == 4):
+      pet_vol_mr_grid_interpolated = np.zeros(mr_vol.shape[:]+(pet_vol.shape[-1],))
+      for i in range(pet_vol.shape[-1]):
+        pet_vol_mr_grid_interpolated[...,i] = aff_transform(pet_vol[...,i], pet_mr_interp_aff, mr_vol_interpolated.shape, 
                                                  cval = pet_vol.min()) 
+    else:
+      pet_vol_mr_grid_interpolated = aff_transform(pet_vol, pet_mr_interp_aff, mr_vol_interpolated.shape, 
+                                                 cval = pet_vol.min())
   else:
     pet_vol_mr_grid_interpolated = pet_vol.copy()
  
@@ -70,4 +82,4 @@ def preprocess_volumes(pet_vol, mr_vol, pet_affine, mr_affine, training_voxsize,
   pet_vol_mr_grid_interpolated /= pet_max
 
 
-  return pet_vol_mr_grid_interpolated, mr_vol_interpolated, m_aff, pet_max, mr_max
+  return pet_vol_mr_grid_interpolated, mr_vol_interpolated, m_aff, pet_max, mr_max, pet_mr_interp_aff

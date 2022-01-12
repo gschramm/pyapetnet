@@ -52,6 +52,8 @@ def predict_from_nifti():
                                            action = 'store_true')
   parser.add_argument('--output_on_mr_grid', help = 'regrid the CNN output to the original MR grid', 
                                              action = 'store_true')
+  parser.add_argument('--output_on_pet_grid', help = 'regrid the CNN output to the original PET grid', 
+                                             action = 'store_true')
   
   args = parser.parse_args()
 
@@ -94,6 +96,7 @@ def predict_from_nifti():
   verbose      = args.verbose
   save_preproc = not args.no_preproc_save
   output_on_mr_grid = args.output_on_mr_grid
+  output_on_pet_grid = args.output_on_pet_grid
 
   #-------------------------------------------------------------------------------------------------
   # load the trained model
@@ -117,14 +120,21 @@ def predict_from_nifti():
   mr, mr_affine   = load_nii_in_ras(mr_fname)
   
   # preprocess the input volumes (coregistration, interpolation and intensity normalization)
-  pet_preproc, mr_preproc, o_aff, pet_scale, mr_scale = preprocess_volumes(pet, mr, 
+  pet_preproc, mr_preproc, o_aff, pet_scale, mr_scale, pet_mr_interp_aff = preprocess_volumes(pet, mr, 
     pet_affine, mr_affine, training_voxsize, perc = 99.99, coreg = coreg_inputs, crop_mr = crop_mr)
   
   
   #------------------------------------------------------------------
   # the actual CNN prediction
-  x = [np.expand_dims(np.expand_dims(pet_preproc,0),-1), np.expand_dims(np.expand_dims(mr_preproc,0),-1)]
-  pred = model.predict(x).squeeze()
+  if (pet_preproc.ndim == 4):
+    pred = np.zeros(pet_preproc.shape)
+    for i in range(pet_preproc.shape[-1]):
+      print('CNN prediction for vol ' + str(i) + ' of ' + str(pet_preproc.shape[-1]) )
+      x = [np.expand_dims(np.expand_dims(pet_preproc[...,i],0),-1), np.expand_dims(np.expand_dims(mr_preproc,0),-1)]
+      pred[...,i] = model.predict(x).squeeze()
+  else:
+    x = [np.expand_dims(np.expand_dims(pet_preproc,0),-1), np.expand_dims(np.expand_dims(mr_preproc,0),-1)]
+    pred = model.predict(x).squeeze()
   
   # undo the intensity normalization
   pred        *= pet_scale
@@ -146,9 +156,26 @@ def predict_from_nifti():
     np.savetxt(os.path.join(output_dir, 'preproc_scaling_factors.txt'), np.array([pet_scale,mr_scale]))
     if verbose: print('wrote scaling factors   to: {os.path.join(output_dir, "preproc_scaling_factors.txt")}')
 
-  if output_on_mr_grid:
+  if output_on_pet_grid:
+    oss = np.ceil(np.linalg.norm(pet_affine[:-1,:-1], axis = 0)/training_voxsize).astype(int)
+    if (pred.ndim == 4):
+      pred_regrid = np.zeros(pet.shape[:])
+      for i in range(pred.shape[-1]):
+        pred_regrid[...,i] = aff_transform(pred[...,i], np.linalg.inv(pet_mr_interp_aff), pet.shape[:-1], cval = pred.min(),
+                                os0 = oss[0], os1 = oss[1], os2 = oss[2])
+    else:
+      pred_regrid = aff_transform(pred, np.linalg.inv(pet_mr_interp_aff), pet.shape, cval = pred.min(),
+                                os0 = oss[0], os1 = oss[1], os2 = oss[2]) 
+    nib.save(nib.Nifti1Image(pred_regrid, pet_affine), os.path.join(output_dir, output_name))
+  elif output_on_mr_grid:
     oss = np.ceil(np.linalg.norm(mr_affine[:-1,:-1], axis = 0)/training_voxsize).astype(int)
-    pred_regrid = aff_transform(pred, np.linalg.inv(o_aff) @ mr_affine, mr.shape, cval = pred.min(),
+    if (pred.ndim == 4):
+      pred_regrid = np.zeros(mr.shape[:]+(pred.shape[-1],))
+      for i in range(pred.shape[-1]):
+        pred_regrid[...,i] = aff_transform(pred[...,i], np.linalg.inv(o_aff) @ mr_affine, mr.shape, cval = pred.min(),
+                                os0 = oss[0], os1 = oss[1], os2 = oss[2])
+    else:
+      pred_regrid = aff_transform(pred, np.linalg.inv(o_aff) @ mr_affine, mr.shape, cval = pred.min(),
                                 os0 = oss[0], os1 = oss[1], os2 = oss[2]) 
     nib.save(nib.Nifti1Image(pred_regrid, mr_affine), os.path.join(output_dir, output_name))
   else:
@@ -193,6 +220,8 @@ def predict_from_dicom():
   parser.add_argument('--no_preproc_save', help = 'do not save preprocessed volumes', 
                                            action = 'store_true')
   parser.add_argument('--output_on_mr_grid', help = 'regrid the CNN output to the original MR grid', 
+                                             action = 'store_true')
+  parser.add_argument('--output_on_pet_grid', help = 'regrid the CNN output to the original PET grid', 
                                              action = 'store_true')
   
   args = parser.parse_args()
@@ -242,6 +271,7 @@ def predict_from_dicom():
   verbose      = args.verbose
   save_preproc = not args.no_preproc_save
   output_on_mr_grid = args.output_on_mr_grid
+  output_on_pet_grid = args.output_on_pet_grid
 
   #-------------------------------------------------------------------------------------------------
   # load the trained model
@@ -300,7 +330,12 @@ def predict_from_dicom():
     np.savetxt(os.path.join(output_dir, 'preproc_scaling_factors.txt'), np.array([pet_scale,mr_scale]))
     if verbose: print('wrote scaling factors   to: {os.path.join(output_dir, "preproc_scaling_factors.txt")}')
 
-  if output_on_mr_grid:
+  if output_on_pet_grid:
+    oss = np.ceil(np.linalg.norm(pet_affine[:-1,:-1], axis = 0)/training_voxsize).astype(int)
+    pred_regrid = aff_transform(pred, np.linalg.inv(o_aff) @ pet_affine, pet.shape, cval = pred.min(),
+                                os0 = oss[0], os1 = oss[1], os2 = oss[2]) 
+    nib.save(nib.Nifti1Image(pred_regrid, pet_affine), os.path.join(output_dir, output_name))
+  elif output_on_mr_grid:
     oss = np.ceil(np.linalg.norm(mr_affine[:-1,:-1], axis = 0)/training_voxsize).astype(int)
     pred_regrid = aff_transform(pred, np.linalg.inv(o_aff) @ mr_affine, mr.shape, cval = pred.min(),
                                 os0 = oss[0], os1 = oss[1], os2 = oss[2]) 
@@ -324,7 +359,11 @@ def predict_from_dicom():
   # write the dicom volume  
   output_dcm_dir = os.path.join(output_dir, output_name)
   if not os.path.exists(output_dcm_dir):
-    if output_on_mr_grid:
+    if output_on_pet_grid:
+      write_3d_static_dicom(pred_regrid, output_dcm_dir, affine = pet_affine, 
+                            ReconstructionMethod = 'CNN MAP Bowsher', 
+                            SeriesDescription = f'CNN MAP Bowsher {model_name}', **dcm_kwargs)
+    elif output_on_mr_grid:
       write_3d_static_dicom(pred_regrid, output_dcm_dir, affine = mr_affine, 
                             ReconstructionMethod = 'CNN MAP Bowsher', 
                             SeriesDescription = f'CNN MAP Bowsher {model_name}', **dcm_kwargs)
