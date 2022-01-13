@@ -52,8 +52,11 @@ def predict_from_nifti():
                                            action = 'store_true')
   parser.add_argument('--output_on_mr_grid', help = 'regrid the CNN output to the original MR grid', 
                                              action = 'store_true')
-  parser.add_argument('--output_on_pet_grid', help = 'regrid the CNN output to the original PET grid', 
+  parser.add_argument('--output_on_pet_grid', help = 'regrid the CNN output to the original PET grid (overrules output_on_mr_grid)', 
                                              action = 'store_true')
+  parser.add_argument('--align_frames_individually', help = 'align each of the PET frames individually to the MR rather than the sum of the frames', 
+                                             action = 'store_true')
+  parser.add_argument('--exclude_frames', help = 'list of frames not to align individually (used with option --align_frames_individually), use the mean alignment')
   
   args = parser.parse_args()
 
@@ -97,6 +100,10 @@ def predict_from_nifti():
   save_preproc = not args.no_preproc_save
   output_on_mr_grid = args.output_on_mr_grid
   output_on_pet_grid = args.output_on_pet_grid
+  align_frames_individually = args.align_frames_individually
+  exclude_frames = eval(args.exclude_frames)
+
+  print('exclude_frames '+str(exclude_frames))
 
   #-------------------------------------------------------------------------------------------------
   # load the trained model
@@ -121,15 +128,15 @@ def predict_from_nifti():
   
   # preprocess the input volumes (coregistration, interpolation and intensity normalization)
   pet_preproc, mr_preproc, o_aff, pet_scale, mr_scale, pet_mr_interp_aff = preprocess_volumes(pet, mr, 
-    pet_affine, mr_affine, training_voxsize, perc = 99.99, coreg = coreg_inputs, crop_mr = crop_mr)
-  
-  
+    pet_affine, mr_affine, training_voxsize, perc = 99.99, coreg = coreg_inputs, crop_mr = crop_mr,
+    align_individually = align_frames_individually, exclude_frames = exclude_frames, verbose = verbose)
+    
   #------------------------------------------------------------------
   # the actual CNN prediction
   if (pet_preproc.ndim == 4):
     pred = np.zeros(pet_preproc.shape)
     for i in range(pet_preproc.shape[-1]):
-      print('CNN prediction for vol ' + str(i) + ' of ' + str(pet_preproc.shape[-1]) )
+      if verbose: print('CNN prediction for frame ' + str(i) + ' of ' + str(pet_preproc.shape[-1]) )
       x = [np.expand_dims(np.expand_dims(pet_preproc[...,i],0),-1), np.expand_dims(np.expand_dims(mr_preproc,0),-1)]
       pred[...,i] = model.predict(x).squeeze()
   else:
