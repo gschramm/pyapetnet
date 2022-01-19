@@ -101,7 +101,11 @@ def predict_from_nifti():
   output_on_mr_grid = args.output_on_mr_grid
   output_on_pet_grid = args.output_on_pet_grid
   align_frames_individually = args.align_frames_individually
-  exclude_frames = eval(args.exclude_frames)
+  print('args.exclude_frames '+str(args.exclude_frames))
+  if args.exclude_frames:
+    exclude_frames = eval(args.exclude_frames)
+  else:
+    exclude_frames = [];
 
   print('exclude_frames '+str(exclude_frames))
 
