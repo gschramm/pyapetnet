@@ -7,7 +7,8 @@ from pymirc.image_operations import aff_transform, zoom3d, rigid_registration
 #-----------------------------------------------------------------------------------------------------
 def preprocess_volumes(pet_vol, mr_vol, pet_affine, mr_affine, training_voxsize,
                        perc = 99.99, coreg = True, crop_mr = True, 
-                       mr_ps_fwhm_mm = None, verbose = False):
+                       mr_ps_fwhm_mm = None, verbose = False, align_individually = False,
+                       exclude_frames = [] ):
 
   # make a copy of the mr_affine since we will modify it and return
   m_aff = mr_affine.copy()
@@ -28,11 +29,17 @@ def preprocess_volumes(pet_vol, mr_vol, pet_affine, mr_affine, training_voxsize,
     print(f'post-smoothing MR with {mr_ps_fwhm_mm} mm')
     mr_vol = gaussian_filter(mr_vol, mr_ps_fwhm_mm / (2.35*mr_voxsize))
 
+  # register a single volume for the inverse transformation
+  if (pet_vol.ndim == 4):
+    pet_vol_reg = pet_vol.sum(axis = 3)
+  else:
+    pet_vol_reg = pet_vol
+
   # regis_aff is the affine transformation that maps from the PET to the MR grid
   # if coreg is False, it is simply deduced from the affine transformation
   # otherwise, rigid registration with mutual information is used
   if coreg:
-    _, regis_aff, _ = rigid_registration(pet_vol, mr_vol, pet_affine, m_aff)
+    _, regis_aff, _ = rigid_registration(pet_vol_reg, mr_vol, pet_affine, m_aff)
   else:
     regis_aff = np.linalg.inv(pet_affine) @ m_aff
 
@@ -49,9 +56,29 @@ def preprocess_volumes(pet_vol, mr_vol, pet_affine, mr_affine, training_voxsize,
   # using the small voxels used during training 
   pet_mr_interp_aff = regis_aff @ np.diag(np.concatenate((1./zoomfacs,[1])))
 
+  # register each PET frame individually to the MR
+  if (coreg and align_individually and pet_vol.ndim == 4):
+    pet_mr_interp_aff_indiv = [];
+    for i in range(pet_vol.shape[-1]):
+      if verbose: print('registering PET frame '+str(i)+' of ' + str(pet_vol.shape[-1])+' to the MR')
+      _, regis_aff_indiv, _ = rigid_registration(pet_vol[...,i], mr_vol, pet_affine, m_aff)
+      pet_mr_interp_aff_indiv.append(regis_aff_indiv @ np.diag(np.concatenate((1./zoomfacs,[1]))))
+
+  # interpolate PET
   if not np.all(np.isclose(pet_mr_interp_aff, np.eye(4))):
-    pet_vol_mr_grid_interpolated = aff_transform(pet_vol, pet_mr_interp_aff, mr_vol_interpolated.shape, 
+    if (pet_vol.ndim == 4):
+      pet_vol_mr_grid_interpolated = np.zeros(mr_vol.shape[:]+(pet_vol.shape[-1],))
+      for i in range(pet_vol.shape[-1]):
+        if verbose: print('interpolating PET frame '+str(i)+' of ' + str(pet_vol.shape[-1])+' to the interpolated MR')
+        if (coreg and align_individually and (not exclude_frames.count(i) > 0)):
+          pet_vol_mr_grid_interpolated[...,i] = aff_transform(pet_vol[...,i], pet_mr_interp_aff_indiv[i], mr_vol_interpolated.shape, 
                                                  cval = pet_vol.min()) 
+        else:
+          pet_vol_mr_grid_interpolated[...,i] = aff_transform(pet_vol[...,i], pet_mr_interp_aff, mr_vol_interpolated.shape, 
+                                                 cval = pet_vol.min()) 
+    else:
+      pet_vol_mr_grid_interpolated = aff_transform(pet_vol, pet_mr_interp_aff, mr_vol_interpolated.shape, 
+                                                 cval = pet_vol.min())
   else:
     pet_vol_mr_grid_interpolated = pet_vol.copy()
  
@@ -70,4 +97,4 @@ def preprocess_volumes(pet_vol, mr_vol, pet_affine, mr_affine, training_voxsize,
   pet_vol_mr_grid_interpolated /= pet_max
 
 
-  return pet_vol_mr_grid_interpolated, mr_vol_interpolated, m_aff, pet_max, mr_max
+  return pet_vol_mr_grid_interpolated, mr_vol_interpolated, m_aff, pet_max, mr_max, pet_mr_interp_aff

@@ -7,7 +7,7 @@ with open(os.path.join(os.path.abspath(os.path.dirname(__file__)), 'README.md'),
 
 setuptools.setup(
     name="pyapetnet",
-    use_scm_version={'fallback_version':'unkown'},
+    use_scm_version={'fallback_version':'unknown'},
     setup_requires=['setuptools_scm','setuptools_scm_git_archive'],
     author="Georg Schramm",
     author_email="georg.schramm@kuleuven.be",
