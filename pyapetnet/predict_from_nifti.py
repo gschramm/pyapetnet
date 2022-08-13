@@ -3,6 +3,7 @@ import os
 
 
 def main():
+    """ pyapetnet prediction from 3D nifti images"""
     parser = argparse.ArgumentParser(
         description='pyapetnet prediction of anatomy-guided PET reconstruction'
     )
