@@ -1,9 +1,5 @@
 import tensorflow as tf
-
-if tf.__version__ >= '2':
-    from tensorflow import keras
-else:
-    import keras
+from tensorflow import keras
 
 
 def tf_gauss_kernel_3d(sigma, size):

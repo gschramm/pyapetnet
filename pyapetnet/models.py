@@ -1,16 +1,10 @@
 import os
 
 import tensorflow
-if tensorflow.__version__ >= '2':
-    from tensorflow.keras.initializers import RandomNormal
-    from tensorflow.keras.models import Sequential, Model
-    from tensorflow.keras.layers import Input, Conv3D, ReLU, PReLU, BatchNormalization, Add, Concatenate, Cropping3D
-    from tensorflow.keras.utils import plot_model
-else:
-    from keras.initializers import RandomNormal
-    from keras.models import Sequential, Model
-    from keras.layers import Input, Conv3D, ReLU, PReLU, BatchNormalization, Add, Concatenate, Cropping3D
-    from keras.utils import plot_model
+from tensorflow.keras.initializers import RandomNormal
+from tensorflow.keras.models import Sequential, Model
+from tensorflow.keras.layers import Input, Conv3D, ReLU, PReLU, BatchNormalization, Add, Concatenate, Cropping3D
+from tensorflow.keras.utils import plot_model
 
 import numpy as np
 
