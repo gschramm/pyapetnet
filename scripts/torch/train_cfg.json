@@ -1,5 +1,5 @@
 {
-  "n_epochs": 300,
+  "n_epochs": 50,
   "batch_size": 64,
   "samples_per_volume": 40,
   "val_batch_size": 20,

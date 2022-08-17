@@ -6,6 +6,7 @@ from argparse import ArgumentParser
 
 import torch
 import torchio as tio
+from torch.utils.tensorboard import SummaryWriter
 
 import numpy as np
 from scipy.ndimage import find_objects
@@ -183,6 +184,11 @@ if __name__ == '__main__':
     optimizer = torch.optim.Adam(model.parameters(), lr=lr)
     #--------------------------------------------------------------------------------------
 
+    # create a tensorboard writer
+    writer = SummaryWriter()
+
+    #--------------------------------------------------------------------------------------
+
     size = len(training_loader_patches.dataset)
 
     for i_epoch in range(n_epochs):
@@ -203,7 +209,8 @@ if __name__ == '__main__':
             # Compute prediction and loss
             pred = model(x)
             loss = loss_fn(pred, y)
-            print(f'loss {loss.item()}')
+            train_loss = loss.item()
+            print(f'loss {train_loss}')
 
             # Backpropagation
             optimizer.zero_grad()
@@ -231,6 +238,10 @@ if __name__ == '__main__':
 
         val_loss /= num_val_batches
         print(f'validation loss {val_loss}')
+
+        writer.add_scalars('losses', {'train':train_loss,
+                                      'validation': val_loss}, i_epoch)
+    writer.close()
 
 #    checkpoint_callback = pl.callbacks.ModelCheckpoint(monitor="val_loss")
 #
