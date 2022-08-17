@@ -157,12 +157,16 @@ if __name__ == '__main__':
     )
 
     training_loader_patches = torch.utils.data.DataLoader(
-        patches_training_set, batch_size=training_batch_size)
+        patches_training_set, 
+        batch_size=training_batch_size,
+        pin_memory = True
+    )
 
     validation_loader = torch.utils.data.DataLoader(
         validation_set,
         batch_size=len(validation_set),
         num_workers=num_workers,
+        pin_memory = True
     )
 
     #--------------------------------------------------------------------------------------
@@ -188,13 +192,13 @@ if __name__ == '__main__':
         for i_batch, batch in enumerate(training_loader_patches):
             print(f'training batch {i_batch}')
             if petOnly:
-                x = batch['pet_low'][tio.DATA]
+                x = batch['pet_low'][tio.DATA].to(device)
             else:
                 x0 = batch['pet_low'][tio.DATA]
                 x1 = batch['mr'][tio.DATA]
-                x = torch.cat((x0, x1), 1)
+                x = torch.cat((x0, x1), 1).to(device)
 
-            y = batch['pet_high'][tio.DATA]
+            y = batch['pet_high'][tio.DATA].to(device)
 
             # Compute prediction and loss
             pred = model(x)
@@ -214,14 +218,14 @@ if __name__ == '__main__':
             for i_batch, batch in enumerate(validation_loader):
                 print(f'validation batch {i_batch}')
                 if petOnly:
-                    x = batch['pet_low'][tio.DATA]
+                    x = batch['pet_low'][tio.DATA].to(device)
                 else:
                     x0 = batch['pet_low'][tio.DATA]
                     x1 = batch['mr'][tio.DATA]
-                    x = torch.cat((x0, x1), 1)
+                    x = torch.cat((x0, x1), 1).to(device)
 
                 # Compute prediction and loss
-                y = batch['pet_high'][tio.DATA]
+                y = batch['pet_high'][tio.DATA].to(device)
                 pred = model(x)
                 val_loss += loss_fn(pred, y).item()
 
