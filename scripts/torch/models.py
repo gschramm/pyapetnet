@@ -1,92 +1,95 @@
-import torch
-import torchio as tio
-import pytorch_lightning as pl
-
+""" convolution neural network for structure guided deblurring and denoising """
+import abc
 from collections import OrderedDict
+from typing import Optional
 
-class APetNet(pl.LightningModule):
-  def __init__(self, loss = torch.nn.L1Loss(), petOnly = False):
-    super().__init__()
+import torch
 
-    self.loss    = loss
-    self.petOnly = petOnly
 
-    self.model   = self.seq_model()
+class BlockGenerator(abc.ABC):
+    """ abstract base class for convolutional block with batch norm and activation """
 
-  #---------------------------------------------
-  def forward(self, x):
-    return torch.nn.ReLU()(self.model(x) + x[:,0:1,...])
+    @abc.abstractmethod
+    def __call__(self, in_channels: int, out_channels: int, groups: int):
+        raise NotImplementedError
 
-  #---------------------------------------------
-  def training_step(self, batch, batch_idx):
-    return self.step(batch, batch_idx, mode = 'training')
 
-  #---------------------------------------------
-  def validation_step(self, batch, batch_idx):
-    return self.step(batch, batch_idx, mode = 'validation')
+class SimpleBlockGenerator(BlockGenerator):
+    """ simple convolutional block with batch norm and activation """
 
-  #---------------------------------------------
-  def step(self, batch, batch_idx, mode = 'training'):
+    def __init__(self,
+                 kernel_size: tuple[int, int, int] = (3, 3, 3),
+                 activation: Optional[torch.nn.Module] = None,
+                 batchnorm: bool = True,
+                 padding: str = 'same'):
+        self.kernel_size = kernel_size
+        self.activation = activation
+        self.batchnorm = batchnorm
+        self.padding = 'same'
 
-    if self.petOnly:
-      x  = batch['pet_low'][tio.DATA]
-    else:
-      x0 = batch['pet_low'][tio.DATA]
-      x1 = batch['mr'][tio.DATA]
-      x  = torch.cat((x0,x1),1)
+    def __call__(self, in_channels, out_channels, groups):
+        od = OrderedDict()
 
-    y  = batch['pet_high'][tio.DATA]
+        od['conv'] = torch.nn.Conv3d(in_channels=in_channels,
+                                     out_channels=out_channels,
+                                     groups=groups,
+                                     kernel_size=self.kernel_size,
+                                     padding=self.padding)
 
-    y_hat = self.forward(x)
+        if self.batchnorm:
+            od['bnorm'] = torch.nn.BatchNorm3d(out_channels)
 
-    loss = self.loss(y_hat, y)
-    # Logging to TensorBoard by default
-    if mode == 'training':
-      self.log('train_loss', loss)
-    elif mode == 'validation':
-      self.log('val_loss', loss)
-    return loss
+        if self.activation is None:
+            od['act'] = torch.nn.PReLU(num_parameters=out_channels)
+        else:
+            od['act'] = self.activation
 
-  #---------------------------------------------
-  def configure_optimizers(self):
-    optimizer = torch.optim.Adam(self.parameters(), lr=1e-3)
-    return optimizer
+        return torch.nn.Sequential(od)
 
-  #---------------------------------------------
-  def conv_act_block(self, in_channels, out_channels, device, kernel_size = (3,3,3), 
-                     activation = None, batchnorm = True, groups = 1):
-  
-    od = OrderedDict()
-  
-    od['conv'] = torch.nn.Conv3d(in_channels = in_channels, out_channels = out_channels, groups = groups,
-                                 kernel_size = kernel_size, padding = 'same', device = self.device)
-   
-    if batchnorm:
-      od['bnorm'] =  torch.nn.BatchNorm3d(out_channels, device = self.device)
-  
-    if activation is None:
-      od['act'] = torch.nn.PReLU(num_parameters = out_channels, device = self.device)
-    else:
-      od['act'] = activation
-  
-    return torch.nn.Sequential(od)
-  
-  #---------------------------------------------
-  def seq_model(self, nfeat = 30, nblocks = 8):
-    
-    od = OrderedDict()
-    # add first conv layer 
-    if self.petOnly:
-      od['b0'] = self.conv_act_block(1, nfeat, self.device, kernel_size = (3,3,3))
-    else:
-      # we use groups = 2 to have seperate convolutions of the two input channels in the first block
-      od['b0'] = self.conv_act_block(2, nfeat, self.device, kernel_size = (3,3,3), groups = 2)
-    
-    for i in range(nblocks):
-      od[f'b{i+1}'] = self.conv_act_block(nfeat, nfeat, self.device, kernel_size = (3,3,3))
-    
-    od[f'conv111'] = torch.nn.Conv3d(in_channels = nfeat, out_channels = 1, 
-                                     kernel_size = (1,1,1), padding = 'same', device = self.device)
-    model = torch.nn.Sequential(od)
-  
-    return model
+
+class SequentialStructureConvNet(torch.nn.Module):
+    """ conv net for structure guided deconvolution / denoising """
+
+    def __init__(self,
+                 num_input_ch: int,
+                 block_generator: BlockGenerator,
+                 nblocks: int = 8,
+                 nfeat: int = 30):
+        super(SequentialStructureConvNet, self).__init__()
+
+        self.num_input_ch = num_input_ch
+        self.nfeat = nfeat
+        self.nblocks = nblocks
+
+        od = OrderedDict()
+        # add first block
+        od['b0'] = block_generator(self.num_input_ch, self.nfeat,
+                                   self.num_input_ch)
+
+        # middle blocks
+        for i in range(self.nblocks):
+            od[f'b{i+1}'] = block_generator(self.nfeat, self.nfeat, 1)
+
+        od['conv111'] = torch.nn.Conv3d(in_channels=self.nfeat,
+                                        out_channels=1,
+                                        kernel_size=(1, 1, 1),
+                                        padding='same')
+
+        self.layer_stack = torch.nn.Sequential(od)
+
+    def forward(self, x: torch.Tensor):
+        """ forward path including residual and ReLU """
+        return torch.nn.ReLU()(self.layer_stack(x) + x[:, 0:1, ...])
+
+
+if __name__ == '__main__':
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    print(f"Using {device} device")
+
+    x = torch.rand(10, 2, 29, 20, 29, device=device)
+
+    bgen = SimpleBlockGenerator()
+    model = APetNet(x.shape[1], bgen, nfeat=4, nblocks=3).to(device)
+
+    pred = model.forward(x)
+    print(model)
