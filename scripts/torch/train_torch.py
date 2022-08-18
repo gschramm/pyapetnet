@@ -1,8 +1,6 @@
 """ train pyapetnet using torch and torch_io"""
 import os
 import pathlib
-import json
-from argparse import ArgumentParser
 
 import torch
 import torchio as tio
@@ -11,64 +9,50 @@ from torch.utils.tensorboard import SummaryWriter
 import numpy as np
 from scipy.ndimage import find_objects
 
+import hydra
+from hydra.core.config_store import ConfigStore
+from omegaconf import OmegaConf
+
 from fileio import read_nifty
 from models import SequentialStructureConvNet, SimpleBlockGenerator
 
-if __name__ == '__main__':
-    parser = ArgumentParser(description='Train APETNET')
-    parser.add_argument('data_dir')
-    parser.add_argument('--cfg_file',
-                        default='train_cfg.json',
-                        help='training config file')
+from config import Config
 
-    args = parser.parse_args()
+cs = ConfigStore.instance()
+cs.store(name="base_config", node=Config)
 
-    data_dir = args.data_dir
-    num_workers = os.cpu_count() - 1
-    petOnly = False
-    # number of slices (discard lower slices in neck region)
-    nsl = 150
 
-    # read and process the config file
-    with open(args.cfg_file) as f:
-        cfg = json.load(f)
+@hydra.main(version_base=None, config_path="conf", config_name="config")
+def main(cfg: Config) -> None:
 
-    n_epochs = cfg['n_epochs']
-    patch_size = cfg['patch_size']
-    internal_voxsize = np.full(3, cfg['internal_voxsize'])
-    lr = cfg['learning_rate']
-    training_batch_size = cfg['batch_size']
-    training_patch_size = cfg['patch_size']
-
-    validation_batch_size = cfg['val_batch_size']
-    validation_patch_size = cfg['val_patch_size']
-
-    samples_per_volume = cfg['samples_per_volume']
-
-    if petOnly:
-        num_input_ch = 1
+    if cfg.num_workers <= 0:
+        num_workers = os.cpu_count()
     else:
-        num_input_ch = 2
+        num_workers = cfg.num_workers
+
+    print(OmegaConf.to_yaml(cfg))
 
     #-------------------------------------------------------------------------------------------------
     training_subjects = []
 
     # load the training data
-    for i, ts in enumerate(cfg['training_files']):
+    for i, ts in enumerate(cfg.files.training):
         print(i, ts)
 
-        pet_low, pet_low_aff = read_nifty(pathlib.Path(data_dir) / ts[0],
-                                          internal_voxsize=internal_voxsize)
-        mr, mr_aff = read_nifty(pathlib.Path(data_dir) / ts[1],
-                                internal_voxsize=internal_voxsize)
-        pet_high, pet_high_aff = read_nifty(pathlib.Path(data_dir) / ts[2],
-                                            internal_voxsize=internal_voxsize)
+        pet_low, pet_low_aff = read_nifty(
+            pathlib.Path(cfg.data_dir) / ts[0],
+            internal_voxsize=cfg.internal_voxsize)
+        mr, mr_aff = read_nifty(pathlib.Path(cfg.data_dir) / ts[1],
+                                internal_voxsize=cfg.internal_voxsize)
+        pet_high, pet_high_aff = read_nifty(
+            pathlib.Path(cfg.data_dir) / ts[2],
+            internal_voxsize=cfg.internal_voxsize)
 
         # crop volumes
         bbox = find_objects(mr > mr.mean())[0]
-        pet_low = pet_low[bbox][..., -nsl:]
-        pet_high = pet_high[bbox][..., -nsl:]
-        mr = mr[bbox][..., -nsl:]
+        pet_low = pet_low[bbox][..., -cfg.num_slices:]
+        pet_high = pet_high[bbox][..., -cfg.num_slices:]
+        mr = mr[bbox][..., -cfg.num_slices:]
 
         # rescale volumes
         mr_scale = np.percentile(mr, 99)
@@ -96,21 +80,23 @@ if __name__ == '__main__':
     validation_subjects = []
 
     # load the validation data
-    for i, ts in enumerate(cfg['validation_files']):
+    for i, ts in enumerate(cfg.files.validation):
         print(i, ts)
 
-        pet_low, pet_low_aff = read_nifty(pathlib.Path(data_dir) / ts[0],
-                                          internal_voxsize=internal_voxsize)
-        mr, mr_aff = read_nifty(pathlib.Path(data_dir) / ts[1],
-                                internal_voxsize=internal_voxsize)
-        pet_high, pet_high_aff = read_nifty(pathlib.Path(data_dir) / ts[2],
-                                            internal_voxsize=internal_voxsize)
+        pet_low, pet_low_aff = read_nifty(
+            pathlib.Path(cfg.data_dir) / ts[0],
+            internal_voxsize=cfg.internal_voxsize)
+        mr, mr_aff = read_nifty(pathlib.Path(cfg.data_dir) / ts[1],
+                                internal_voxsize=cfg.internal_voxsize)
+        pet_high, pet_high_aff = read_nifty(
+            pathlib.Path(cfg.data_dir) / ts[2],
+            internal_voxsize=cfg.internal_voxsize)
 
         # crop volumes
         bbox = find_objects(mr > mr.mean())[0]
-        pet_low = pet_low[bbox][..., -nsl:]
-        pet_high = pet_high[bbox][..., -nsl:]
-        mr = mr[bbox][..., -nsl:]
+        pet_low = pet_low[bbox][..., -cfg.num_slices:]
+        pet_high = pet_high[bbox][..., -cfg.num_slices:]
+        mr = mr[bbox][..., -cfg.num_slices:]
 
         # rescale volumes
         mr_scale = np.percentile(mr, 99)
@@ -145,12 +131,12 @@ if __name__ == '__main__':
 
     #-------------------------------------------------------------------------------------------------
 
-    sampler = tio.data.WeightedSampler(patch_size, 'mask')
+    sampler = tio.data.WeightedSampler(cfg.patch_size, 'mask')
 
     patches_training_set = tio.Queue(
         subjects_dataset=training_set,
-        max_length=2 * samples_per_volume,
-        samples_per_volume=samples_per_volume,
+        max_length=2 * cfg.samples_per_volume,
+        samples_per_volume=cfg.samples_per_volume,
         sampler=sampler,
         num_workers=num_workers,
         shuffle_subjects=True,
@@ -158,17 +144,13 @@ if __name__ == '__main__':
     )
 
     training_loader_patches = torch.utils.data.DataLoader(
-        patches_training_set, 
-        batch_size=training_batch_size,
-        pin_memory = True
-    )
+        patches_training_set, batch_size=cfg.batch_size, pin_memory=True)
 
     validation_loader = torch.utils.data.DataLoader(
         validation_set,
-        batch_size=len(validation_set),
+        batch_size=cfg.val_batch_size,
         num_workers=num_workers,
-        pin_memory = True
-    )
+        pin_memory=True)
 
     #--------------------------------------------------------------------------------------
     #--------------------------------------------------------------------------------------
@@ -177,11 +159,13 @@ if __name__ == '__main__':
     print(f"Using {device} device")
 
     bgen = SimpleBlockGenerator()
-    model = SequentialStructureConvNet(num_input_ch, bgen, nfeat=4,
-                                       nblocks=3).to(device)
+    model = SequentialStructureConvNet(cfg.num_input_ch,
+                                       bgen,
+                                       nfeat=cfg.num_feat,
+                                       nblocks=cfg.num_blocks).to(device)
 
     loss_fn = torch.nn.L1Loss()
-    optimizer = torch.optim.Adam(model.parameters(), lr=lr)
+    optimizer = torch.optim.Adam(model.parameters(), lr=cfg.learning_rate)
     #--------------------------------------------------------------------------------------
 
     # create a tensorboard writer
@@ -189,15 +173,13 @@ if __name__ == '__main__':
 
     #--------------------------------------------------------------------------------------
 
-    size = len(training_loader_patches.dataset)
-
-    for i_epoch in range(n_epochs):
+    for i_epoch in range(cfg.num_epochs):
         print(f'epoch {i_epoch}')
 
         # training loop
         for i_batch, batch in enumerate(training_loader_patches):
             print(f'training batch {i_batch}')
-            if petOnly:
+            if cfg.num_input_ch == 1:
                 x = batch['pet_low'][tio.DATA].to(device)
             else:
                 x0 = batch['pet_low'][tio.DATA]
@@ -224,7 +206,7 @@ if __name__ == '__main__':
         with torch.no_grad():
             for i_batch, batch in enumerate(validation_loader):
                 print(f'validation batch {i_batch}')
-                if petOnly:
+                if cfg.num_input_ch == 1:
                     x = batch['pet_low'][tio.DATA].to(device)
                 else:
                     x0 = batch['pet_low'][tio.DATA]
@@ -239,48 +221,12 @@ if __name__ == '__main__':
         val_loss /= num_val_batches
         print(f'validation loss {val_loss}')
 
-        writer.add_scalars('losses', {'train':train_loss,
-                                      'validation': val_loss}, i_epoch)
+        writer.add_scalars('losses', {
+            'train': train_loss,
+            'validation': val_loss
+        }, i_epoch)
     writer.close()
 
-#    checkpoint_callback = pl.callbacks.ModelCheckpoint(monitor="val_loss")
-#
-#    model = APetNet(petOnly=petOnly)
-#    trainer = pl.Trainer(gpus=int(torch.cuda.is_available()),
-#                         min_epochs=0,
-#                         max_epochs=n_epochs,
-#                         callbacks=[checkpoint_callback])
-#    trainer.fit(model, training_loader_patches, validation_loader)
-#
-#    print(checkpoint_callback.best_model_path)
-#
-#    #--------------------------------------------------------------------------------------
-#    import pymirc.viewer as pv
-#
-#    model = APetNet.load_from_checkpoint(checkpoint_callback.best_model_path)
-#
-#    device = torch.device('cuda') if torch.cuda.is_available() else 'cpu'
-#    model.to(device)
-#
-#    vis = []
-#
-#    for i, vsub in enumerate(validation_subjects):
-#        if petOnly:
-#            x = vsub['pet_low'][tio.DATA].unsqueeze(0).to(device)
-#        else:
-#            x0 = vsub['pet_low'][tio.DATA].unsqueeze(0)
-#            x1 = vsub['mr'][tio.DATA].unsqueeze(0)
-#            x = torch.cat((x0, x1), 1).to(device)
-#
-#        with torch.no_grad():
-#            p = model.forward(x).detach().cpu().numpy().squeeze()
-#
-#        y = vsub['pet_high'][tio.DATA].numpy().squeeze()
-#
-#        vis.append(
-#            pv.ThreeAxisViewer([x[0, 0, ...].cpu().numpy().squeeze(), p, y],
-#                               imshow_kwargs={
-#                                   'vmin': 0,
-#                                   'vmax': 1.5
-#                               }))
-#
+
+if __name__ == '__main__':
+    main()

@@ -1,1 +1,3 @@
 lightning_logs/*
+runs/*
+outputs/*

@@ -1,0 +1,18 @@
+defaults:
+  - base_config
+  - files: brainweb
+  - _self_
+
+num_epochs: 2
+batch_size: 64
+samples_per_volume: 40
+val_batch_size: 20
+patch_size: 29
+learning_rate: 1e-3
+internal_voxsize: 1.0
+num_workers: -1
+num_feat: 30
+num_blocks: 7
+num_slices: 150
+num_input_ch: 2
+data_dir: .
