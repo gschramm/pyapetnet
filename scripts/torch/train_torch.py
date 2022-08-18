@@ -26,7 +26,7 @@ cs.store(name="base_config", node=Config)
 def main(cfg: Config) -> None:
 
     if cfg.num_workers <= 0:
-        num_workers = os.cpu_count()
+        num_workers = os.cpu_count() - 1
     else:
         num_workers = cfg.num_workers
 
