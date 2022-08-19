@@ -22,4 +22,5 @@ class Config:
     num_blocks: int
     num_slices: int
     num_input_ch: int
+    val_metric_period: int
     files: Files

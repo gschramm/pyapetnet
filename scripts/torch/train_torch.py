@@ -5,6 +5,7 @@ import pathlib
 import torch
 import torchio as tio
 from torch.utils.tensorboard import SummaryWriter
+from torchmetrics import StructuralSimilarityIndexMeasure, PeakSignalNoiseRatio
 
 import numpy as np
 from scipy.ndimage import find_objects
@@ -32,10 +33,9 @@ def main(cfg: Config) -> None:
 
     print(OmegaConf.to_yaml(cfg))
 
-    #-------------------------------------------------------------------------------------------------
+    # load the training data
     training_subjects = []
 
-    # load the training data
     for i, ts in enumerate(cfg.files.training):
         print(i, ts)
 
@@ -169,9 +169,11 @@ def main(cfg: Config) -> None:
     #--------------------------------------------------------------------------------------
 
     # create a tensorboard writer
-    writer = SummaryWriter()
+    writer = SummaryWriter(log_dir=os.getcwd())
 
     #--------------------------------------------------------------------------------------
+    ssim = StructuralSimilarityIndexMeasure()
+    psnr = PeakSignalNoiseRatio()
 
     for i_epoch in range(cfg.num_epochs):
         print(f'epoch {i_epoch}')
@@ -201,6 +203,8 @@ def main(cfg: Config) -> None:
 
         #-----------------------------------------------------------
         val_loss = 0.
+        val_ssim = 0.
+        val_psnr = 0.
         num_val_batches = len(validation_loader)
 
         with torch.no_grad():
@@ -218,13 +222,28 @@ def main(cfg: Config) -> None:
                 pred = model(x)
                 val_loss += loss_fn(pred, y).item()
 
+                if ((i_epoch + 1) % cfg.val_metric_period) == 0:
+                    val_psnr = psnr(pred, y)
+                    val_ssim = ssim(pred, y)
+
         val_loss /= num_val_batches
+        val_ssim /= num_val_batches
+        val_psnr /= num_val_batches
+
         print(f'validation loss {val_loss}')
 
         writer.add_scalars('losses', {
             'train': train_loss,
             'validation': val_loss
         }, i_epoch)
+
+        if ((i_epoch + 1) % cfg.val_metric_period) == 0:
+            print(f'validation ssim {val_ssim}')
+            print(f'validation psnr {val_psnr}')
+            writer.add_scalars('val_metrics', {
+                'psnr': val_psnr,
+                'ssim': val_ssim
+            }, i_epoch)
     writer.close()
 
 

@@ -15,4 +15,5 @@ num_feat: 30
 num_blocks: 7
 num_slices: 150
 num_input_ch: 2
+val_metric_period: 10
 data_dir: .
