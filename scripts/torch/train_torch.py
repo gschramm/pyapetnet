@@ -1,6 +1,7 @@
 """ train pyapetnet using torch and torch_io"""
 import os
 import pathlib
+import logging
 
 import torch
 import torchio as tio
@@ -19,6 +20,8 @@ from models import SequentialStructureConvNet, SimpleBlockGenerator
 
 from config import Config
 
+log = logging.getLogger(__name__)
+
 cs = ConfigStore.instance()
 cs.store(name="base_config", node=Config)
 
@@ -31,13 +34,13 @@ def main(cfg: Config) -> None:
     else:
         num_workers = cfg.num_workers
 
-    print(OmegaConf.to_yaml(cfg))
+    log.info(OmegaConf.to_yaml(cfg))
 
     # load the training data
     training_subjects = []
 
     for i, ts in enumerate(cfg.files.training):
-        print(i, ts)
+        log.info(f'{i}, {ts}')
 
         pet_low, pet_low_aff = read_nifty(
             pathlib.Path(cfg.data_dir) / ts[0],
@@ -81,7 +84,7 @@ def main(cfg: Config) -> None:
 
     # load the validation data
     for i, ts in enumerate(cfg.files.validation):
-        print(i, ts)
+        log.info(f'{i}, {ts}')
 
         pet_low, pet_low_aff = read_nifty(
             pathlib.Path(cfg.data_dir) / ts[0],
@@ -156,7 +159,7 @@ def main(cfg: Config) -> None:
     #--------------------------------------------------------------------------------------
     #--------------------------------------------------------------------------------------
     device = "cuda" if torch.cuda.is_available() else "cpu"
-    print(f"Using {device} device")
+    log.info(f'Using {device} device')
 
     bgen = SimpleBlockGenerator()
     model = SequentialStructureConvNet(cfg.num_input_ch,
@@ -176,11 +179,11 @@ def main(cfg: Config) -> None:
     psnr = PeakSignalNoiseRatio()
 
     for i_epoch in range(cfg.num_epochs):
-        print(f'epoch {i_epoch}')
+        log.info(f'epoch {i_epoch}')
 
         # training loop
         for i_batch, batch in enumerate(training_loader_patches):
-            print(f'training batch {i_batch}')
+            log.info(f'training batch {i_batch}')
             if cfg.num_input_ch == 1:
                 x = batch['pet_low'][tio.DATA].to(device)
             else:
@@ -194,7 +197,7 @@ def main(cfg: Config) -> None:
             pred = model(x)
             loss = loss_fn(pred, y)
             train_loss = loss.item()
-            print(f'loss {train_loss}')
+            log.info(f'loss {train_loss}')
 
             # Backpropagation
             optimizer.zero_grad()
@@ -209,7 +212,7 @@ def main(cfg: Config) -> None:
 
         with torch.no_grad():
             for i_batch, batch in enumerate(validation_loader):
-                print(f'validation batch {i_batch}')
+                log.info(f'validation batch {i_batch}')
                 if cfg.num_input_ch == 1:
                     x = batch['pet_low'][tio.DATA].to(device)
                 else:
@@ -230,7 +233,7 @@ def main(cfg: Config) -> None:
         val_ssim /= num_val_batches
         val_psnr /= num_val_batches
 
-        print(f'validation loss {val_loss}')
+        log.info(f'validation loss {val_loss}')
 
         writer.add_scalars('losses', {
             'train': train_loss,
@@ -238,8 +241,8 @@ def main(cfg: Config) -> None:
         }, i_epoch)
 
         if ((i_epoch + 1) % cfg.val_metric_period) == 0:
-            print(f'validation ssim {val_ssim}')
-            print(f'validation psnr {val_psnr}')
+            log.info(f'validation ssim {val_ssim}')
+            log.info(f'validation psnr {val_psnr}')
             writer.add_scalars('val_metrics', {
                 'psnr': val_psnr,
                 'ssim': val_ssim
