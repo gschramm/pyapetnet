@@ -1,0 +1,9 @@
+name: pyapetnet
+
+channels:
+- conda-forge
+
+dependencies:
+- pymirc>=0.22
+- pip:
+  - tensorflow>=2.2

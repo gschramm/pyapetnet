@@ -19,35 +19,15 @@ If we you are using pyapetnet in scientific publications, we appreciate citation
 
 ## Installation
 
-Unfortunately, the whole installation process is a bit cluttered since the installation procedure of tensorflow is very different for different operating systems (especially on MacOS with Apple Silicon).
-
 ### Install miniconda or miniforge
 
 Install the miniconda or miniforge (conda from conda-forge) python distribution and to be able create a conda virtual environment for pyapetnet. 
-**MacOS Silicon users have to use miniforge, otherwise the tensorflow installation will not work.**
 
-### Installation of tensorflow
-
-#### Linux or Windows
-
-Install tensorflow >=2.2 using this [guide](https://www.tensorflow.org/install) inside your pyapetnet conda environment.
-
-#### MacOS with Apple Silicon
-
-Install tensorflow >=2.2 using this [apple guide](https://developer.apple.com/metal/tensorflow-plugin/) inside your pyapetnet conda environment. This will only work if you are using *miniforge*.
-
-#### Install all dependencies
+### Installation of a stable version of pyapetnet from pypi
 
 ```
 conda activate pyapetnet
-conda install -c conda-forge 'pymirc>=0.22'
-```
-
-### Install the latest stable version of pyapetnet
-
-```
-conda activate pyapetnet
-pip install pyapetnet
+pip install pyapenet
 ```
 
 ### Install the latest (unstable) version (not recommended)
