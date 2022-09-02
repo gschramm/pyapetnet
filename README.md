@@ -19,12 +19,48 @@ If we you are using pyapetnet in scientific publications, we appreciate citation
 
 ## Installation
 
-We recommend to use the anaconda python distribution and to create a conda virtual environment for pyapetnet. The pyapetnet package and its dependencies are available as conda package on the channels gschramm and conda-forge.
+Unfortunately, the whole installation process is a bit cluttered since the installation procedure of tensorflow is very different for different operating systems (especially on MacOS with Apple Silicon).
 
-To create a virtual environment called ```pyapetnet``` and to install the package and all its dependencies execute:
+### Install miniconda or miniforge
+
+Install the miniconda or miniforge (conda from conda-forge) python distribution and to be able create a conda virtual environment for pyapetnet. 
+**MacOS Silicon users have to use miniforge, otherwise the tensorflow installation will not work.**
+
+### Installation of tensorflow
+
+#### Linux or Windows
+
+Install tensorflow >=2.2 using this [guide](https://www.tensorflow.org/install) inside your pyapetnet conda environment.
+
+#### MacOS with Apple Silicon
+
+Install tensorflow >=2.2 using this [apple guide](https://developer.apple.com/metal/tensorflow-plugin/) inside your pyapetnet conda environment. This will only work if you are using *miniforge*.
+
+#### Install all dependencies
+
 ```
-conda create -n pyapetnet -c conda-forge -c gschramm pyapetnet
+conda activate pyapetnet
+conda install -c conda-forge 'pymirc>=0.22'
 ```
+
+### Install the latest stable version of pyapetnet
+
+```
+conda activate pyapetnet
+pip install pyapetnet
+```
+
+### Install the latest (unstable) version (not recommended)
+
+```
+conda activate pyapetnet
+cd /foo/bar/my_favorite_dir
+git clone git@github.com:gschramm/pyapetnet.git
+cd pyapetnet
+pip install .
+```
+
+## Testing the installation
 
 To test the installation activate the virtual conda environment
 ```

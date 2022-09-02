@@ -29,9 +29,11 @@ setuptools.setup(
     ],
     python_requires='>=3.6',
     install_requires=[
-        'tensorflow>=2.2', 'nibabel>=3.0', 'matplotlib>=3.1', 'pydicom>=2.0',
-        'pymirc>=0.22'
+        'nibabel>=3.0', 'matplotlib>=3.1', 'pydicom>=2.0','pymirc>=0.22'
     ],
+    extras_require = {
+        'full': ['tensorflow>=2.2']
+    },
     entry_points={
         'console_scripts': [
             'pyapetnet_predict_from_nifti=pyapetnet.predict_from_nifti:main',
