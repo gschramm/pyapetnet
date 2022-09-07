@@ -4,6 +4,7 @@ channels:
 - conda-forge
 
 dependencies:
+- SimpleITK>=2.0
 - pymirc>=0.22
 - pip:
   - tensorflow>=2.2

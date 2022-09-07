@@ -1,4 +1,5 @@
 # added by user
+**/.DS_STORE
 data/*
 cnn_logs/*
 tmp/*
