@@ -29,7 +29,7 @@ setuptools.setup(
     ],
     python_requires='>=3.6',
     install_requires=[
-        'tensorflow>=2.2', 'pymirc>=0.22', 'nibabel>=3.0', 'matplotlib>=3.1',
+        'tensorflow-cpu>=2.2', 'pymirc>=0.22', 'nibabel>=3.0', 'matplotlib>=3.1',
         'pydicom>=2.0', 'SimpleITK>=2.0'
     ],
     entry_points={
