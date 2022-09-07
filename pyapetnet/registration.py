@@ -1,3 +1,4 @@
+import numpy as np
 import SimpleITK as sitk
 
 def resample_sitk_image(volume: sitk.Image,
@@ -30,7 +31,7 @@ def align_sitk_images(fixed_image: sitk.Image,
     if initial_transform is None:
         initial_transform = sitk.CenteredTransformInitializer(
             fixed_image, moving_image, sitk.Euler3DTransform(),
-            sitk.CenteredTransformInitializerFilter.GEOMETRY)
+            sitk.CenteredTransformInitializerFilter.MOMENTS)
 
     # Registration
     if registration_method is None:
@@ -78,3 +79,36 @@ def align_sitk_images(fixed_image: sitk.Image,
                                          moving_image.GetPixelID())
 
     return fixed_image, moving_image_aligned
+
+def affine_to_direction(aff):
+    origin = aff[:-1,-1]
+    direction = aff[:-1,:-1]
+    spacing = np.linalg.norm(direction, axis = 0)
+    direction /= spacing
+
+    return origin, spacing, direction
+
+def array_to_sitk_image(arr, aff):
+    # sitk assumes that in numpy we have stores [z,y,x]
+    # so we have to swap axes
+    img = sitk.GetImageFromArray(np.swapaxes(arr,0,2))
+    origin, spacing, direction = affine_to_direction(aff)
+    img.SetOrigin(origin)
+    img.SetSpacing(spacing)
+    img.SetDirection(direction.T.flatten())
+
+    return img
+
+def sitk_image_to_array(img):
+    # sitk assumes that in numpy we have stores [z,y,x]
+    # so we have to swap axes
+    return np.swapaxes(sitk.GetArrayFromImage(img),0,2)
+
+
+def align_volumes(fixed_volume, fixed_affine, moving_volume, moving_affine):
+    fixed_img = array_to_sitk_image(fixed_volume, fixed_affine)
+    moving_img = array_to_sitk_image(moving_volume, moving_affine)
+
+    fixed_img_interp, moving_img_interp = align_sitk_images(fixed_img, moving_img)
+
+    return sitk_image_to_array(fixed_img_interp), sitk_image_to_array(moving_img_interp)
