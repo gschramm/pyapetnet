@@ -45,6 +45,21 @@ def main():
     parser.add_argument('--output_on_mr_grid',
                         help='regrid the CNN output to the original MR grid',
                         action='store_true')
+    parser.add_argument(
+        '--series_description_prefix',
+        help=
+        'dicom series description prefix for prediction - default: empty string',
+        default='')
+    parser.add_argument(
+        '--series_description',
+        help=
+        'dicom series description for prediction - default: CNN MAP Bowsher',
+        default='CNN AGR Bowsher')
+    parser.add_argument(
+        '--series_description_suffix',
+        help=
+        'dicom series description suffix for prediction - default model name: and package version',
+        default=None)
 
     args = parser.parse_args()
 
@@ -94,6 +109,16 @@ def main():
     verbose = args.verbose
     save_preproc = not args.no_preproc_save
     output_on_mr_grid = args.output_on_mr_grid
+
+    series_description_prefix = args.series_description_prefix
+    series_description = args.series_description
+    series_description_suffix = args.series_description_suffix
+
+    series_description_prefix = args.series_description_prefix
+    if series_description_suffix is None:
+        series_description_suffix = f'__m{model_name}_v{pyapetnet.__version__}'
+
+    series_description = f'{series_description_prefix}{series_description}{series_description_suffix}'
 
     #-------------------------------------------------------------------------------------------------
     # load the trained model
@@ -210,19 +235,23 @@ def main():
                 pred_regrid,
                 output_dcm_dir,
                 affine=mr_affine,
-                ReconstructionMethod='CNN MAP Bowsher',
-                SeriesDescription=f'CNN MAP Bowsher {model_name}',
+                ReconstructionMethod=
+                f'CNN MAP Bowsher {model_name} {pyapetnet.__version__}',
+                SeriesDescription=series_description,
                 **dcm_kwargs)
         else:
             write_3d_static_dicom(
                 pred,
                 output_dcm_dir,
                 affine=o_aff,
-                ReconstructionMethod='CNN MAP Bowsher',
-                SeriesDescription=f'CNN MAP Bowsher {model_name}',
+                ReconstructionMethod=
+                f'CNN MAP Bowsher {model_name} {pyapetnet.__version__}',
+                SeriesDescription=series_description,
                 **dcm_kwargs)
+
+        print(f'wrote prediction to: {output_dcm_dir}')
     else:
-        warn('Output dicom directory already exists. Not ovewrting it')
+        warn('Output dicom directory already exists. Not overwriting it')
 
     #------------------------------------------------------------------
     # show the results
