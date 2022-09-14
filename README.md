@@ -23,6 +23,10 @@ If we you are using pyapetnet in scientific publications, we appreciate citation
 
 Install the miniconda or miniforge (conda from conda-forge) python distribution and to be able create a conda virtual environment for pyapetnet. 
 
+```
+conda create -n pyapetnet python~=3.10 pip
+```
+
 ### Installation of a stable version of pyapetnet from pypi
 
 ```
