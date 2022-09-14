@@ -112,7 +112,8 @@ def main():
         training_voxsize,
         perc=99.99,
         coreg=coreg_inputs,
-        crop_mr=crop_mr)
+        crop_mr=crop_mr,
+        verbose=verbose)
 
     #------------------------------------------------------------------
     # the actual CNN prediction
@@ -136,14 +137,14 @@ def main():
                  os.path.join(output_dir, 'pet_preproc.nii'))
         if verbose:
             print(
-                'wrote pre-processed PET to: {os.path.join(output_dir, "pet_preproc.nii")}'
+                f'wrote pre-processed PET to: {os.path.join(output_dir, "pet_preproc.nii")}'
             )
 
         nib.save(nib.Nifti1Image(mr_preproc, o_aff),
                  os.path.join(output_dir, 'mr_preproc.nii'))
         if verbose:
             print(
-                'wrote pre-processed MR  to: {os.path.join(output_dir, "mr_preproc.nii")}'
+                f'wrote pre-processed MR  to: {os.path.join(output_dir, "mr_preproc.nii")}'
             )
 
         # save the intensity normalization factors
@@ -151,7 +152,7 @@ def main():
                    np.array([pet_scale, mr_scale]))
         if verbose:
             print(
-                'wrote scaling factors   to: {os.path.join(output_dir, "preproc_scaling_factors.txt")}'
+                f'wrote scaling factors   to: {os.path.join(output_dir, "preproc_scaling_factors.txt")}'
             )
 
     if output_on_mr_grid:
@@ -172,7 +173,7 @@ def main():
                  os.path.join(output_dir, output_name))
     if verbose:
         print(
-            'wrote prediction to       : {os.path.join(output_dir, output_name)}'
+            f'wrote prediction to       : {os.path.join(output_dir, output_name)}'
         )
 
     #------------------------------------------------------------------
