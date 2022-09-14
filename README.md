@@ -31,7 +31,7 @@ conda create -n pyapetnet python~=3.10 pip
 
 ```
 conda activate pyapetnet
-pip install pyapenet
+pip install pyapetnet
 ```
 
 ### Install the latest (unstable) version (not recommended)
