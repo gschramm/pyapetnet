@@ -123,7 +123,7 @@ def main():
     mr_affine = mr_dcm.affine
 
     # preprocess the input volumes (coregistration, interpolation and intensity normalization)
-    pet_preproc, mr_preproc, o_aff, pet_scale, mr_scale = preprocess_volumes(
+    pet_preproc, mr_preproc, o_aff, pet_scale, mr_scale, _ = preprocess_volumes(
         pet,
         mr,
         pet_affine,
@@ -243,6 +243,7 @@ def main():
         vi = pv.ThreeAxisViewer([mr_preproc, pet_preproc, pred],
                                 imshow_kwargs=ims)
         plt.show()
+
 
 if __name__ == '__main__':
     main()

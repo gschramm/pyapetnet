@@ -104,7 +104,7 @@ def main():
     mr, mr_affine = load_nii_in_ras(mr_fname)
 
     # preprocess the input volumes (coregistration, interpolation and intensity normalization)
-    pet_preproc, mr_preproc, o_aff, pet_scale, mr_scale = preprocess_volumes(
+    pet_preproc, mr_preproc, o_aff, pet_scale, mr_scale, _ = preprocess_volumes(
         pet,
         mr,
         pet_affine,

@@ -139,8 +139,8 @@ def resample_sitk_image(volume: sitk.Image,
 
 
 def align_and_resample(
-    fixed_image: np.ndarray,
-    moving_image: np.ndarray,
+    fixed_volume: np.ndarray,
+    moving_volume: np.ndarray,
     fixed_affine: np.ndarray,
     moving_affine: np.ndarray,
     new_spacing: tuple[float, float, float] = (1., 1., 1.),
@@ -155,9 +155,9 @@ def align_and_resample(
 
     Parameters
     ----------
-    fixed_image : np.ndarray
+    fixed_volume : np.ndarray
         the fixed 3D image
-    moving_image : np.ndarray
+    moving_volume : np.ndarray
         the moving 3D image
     fixed_affine : np.ndarray
         affine maxtrix for fixed image
@@ -190,16 +190,11 @@ def align_and_resample(
         - the resampled fixed image 
         - the aligned moving image
         - the final transform that maps the moving image to the resampled fixed image 
-          the affine matrix of the
-        - resampled fixed image
+        - the affine matrix of the resampled fixed image
     """
 
-    fixed_image = array_to_sitk_image(fixed_image, fixed_affine)
-    moving_image = array_to_sitk_image(moving_image, moving_affine)
-
-    if not tuple(new_spacing) == fixed_image.GetSpacing():
-        # resample fixed image to the desired spacing (voxel sapce)
-        fixed_image = resample_sitk_image(fixed_image, new_spacing)
+    fixed_image = array_to_sitk_image(fixed_volume, fixed_affine)
+    moving_image = array_to_sitk_image(moving_volume, moving_affine)
 
     # get the initial transform based on the affine information from the header
     resample_transform = sitk.Transform(moving_image.GetDimension(),
@@ -246,10 +241,8 @@ def align_and_resample(
                 numberOfIterations=100,
                 convergenceMinimumValue=1e-6,
                 convergenceWindowSize=10)
-            #registration_method.SetOptimizerAsLBFGSB()
 
-            if (init_mode == 'GEOMETRY') or (init_mode == 'MOMENTS'):
-                registration_method.SetOptimizerScalesFromPhysicalShift()
+            registration_method.SetOptimizerScalesFromPhysicalShift()
 
             # Setup for the multi-resolution framework.
             registration_method.SetShrinkFactorsPerLevel(
@@ -279,10 +272,38 @@ def align_and_resample(
                 f"Final metric value: {registration_method.GetMetricValue()}")
             print(f"Final parameters: {final_transform.GetParameters()}")
 
-    moving_image_aligned = sitk.Resample(moving_image, fixed_image,
-                                         final_transform, sitk.sitkLinear, 0.0,
+    # calculate the new spacing and origin and apply the transformation
+    original_spacing = fixed_image.GetSpacing()
+    original_size = fixed_image.GetSize()
+    new_size = tuple([
+        int(round(osz * ospc / nspc)) for osz, ospc, nspc in zip(
+            original_size, original_spacing, new_spacing)
+    ])
+
+    # calculate the new origin
+    old_aff = affine_from_sitk_image(fixed_image)
+    new_origin = tuple((old_aff @ np.array([
+        0.5 * (new_spacing[0] / original_spacing[0] - 1), 0.5 *
+        (new_spacing[1] / original_spacing[1] - 1), 0.5 *
+        (new_spacing[2] / original_spacing[2] - 1), 1
+    ]))[:-1])
+
+    interpolator = sitk.sitkLinear
+
+    moving_image_aligned = sitk.Resample(moving_image, new_size,
+                                         final_transform, interpolator,
+                                         new_origin, new_spacing,
+                                         fixed_image.GetDirection(),
+                                         moving_volume.min(),
                                          moving_image.GetPixelID())
 
-    return sitk_image_to_array(fixed_image), sitk_image_to_array(
+    fixed_image_resampled = sitk.Resample(fixed_image, new_size,
+                                          sitk.Transform(), interpolator,
+                                          new_origin, new_spacing,
+                                          fixed_image.GetDirection(),
+                                          fixed_volume.min(),
+                                          fixed_image.GetPixelID())
+
+    return sitk_image_to_array(fixed_image_resampled), sitk_image_to_array(
         moving_image_aligned), final_transform, affine_from_sitk_image(
-            fixed_image)
+            fixed_image_resampled)
