@@ -8,7 +8,7 @@ A convolutional neurol network (CNN) to mimick the behavior of anatomy-guided PE
 
 Georg Schramm, David Rigie
 
-## License 
+## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details
 
@@ -21,7 +21,7 @@ If we you are using pyapetnet in scientific publications, we appreciate citation
 
 ### Install miniconda or miniforge
 
-Install the miniconda or miniforge (conda from conda-forge) python distribution and to be able create a conda virtual environment for pyapetnet. 
+Install the miniconda or miniforge (conda from conda-forge) python distribution and to be able create a conda virtual environment for pyapetnet.
 
 ```
 conda create -n pyapetnet python~=3.10 pip
@@ -47,35 +47,51 @@ pip install .
 ## Testing the installation
 
 To test the installation activate the virtual conda environment
+
 ```
 conda activate pyapetnet
 ```
+
 and run
+
 ```python
 import pyapetnet
 print(pyapetnet.__version__)
-print(pyapetnet.__file__) 
+print(pyapetnet.__file__)
 ```
 
-If the installation was successful, a number of command line scripts all starting with pyapetnet* to e.g. do predictions with the included trained models from nifti and dicom input images will be available.
+If the installation was successful, a number of command line scripts all starting with pyapetnet\* to e.g. do predictions with the included trained models from nifti and dicom input images will be available.
 
 ## Getting started - running your first prediction with pre-trained models
 
 To run a prediction using one of included pre-trained networks and **nifti images**, run e.g.:
+
 ```
 pyapetnet_predict_from_nifti osem.nii t1.nii S2_osem_b10_fdg_pe2i --show
 ```
+
 Use the following to get information on the (optional) input arguments
+
 ```
 pyapetnet_predict_from_nifti -h
 ```
+
 To get a list of available pre-trained models run
+
 ```
 pyapetnet_list_models
 ```
 
 To make predictions from **dicom images**, use
+
 ```
 pyapetnet_predict_from_dicom osem_dcm_dir t1_dcm_dir S2_osem_b10_fdg_pe2i --show
 ```
-The source code of the prediction scripts can be found in the *command_line_tools* sub module.
+
+The source code of the prediction scripts can be found in the `pyapetnet` subfolder [here](pyapetnet/predict_from_nifti.py) and [here](pyapetnet/predict_from_dicom.py).
+
+## Installing tensorflow with GPU support
+
+By default pyapetnet only depends on `tensorflow-cpu` such that predictions can be made on machines without GPUs we well.
+In case you want to train your own pyapetnet model or you want to use GPUs for predictions,
+you can install tensorflow with GPU support following the [official installation instructions](https://www.tensorflow.org/install).
