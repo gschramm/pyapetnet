@@ -99,6 +99,6 @@ you can install tensorflow with GPU support following the [official installation
 ## Training your own model
 
 If you want to train your own model (from scratch or using transfer learning)
-using your own data, have a look at our [training script](pyapetnet/train_bow_cnn_tf2.py).
+using your own data, have a look at our [training script](scripts/train_bow_cnn_tf2.py).
 All input parameters (e.g. data sets to use) have to be specified in a config json file ([example here](scripts/train_cfg.json)). 
 The input data sets have to be in nifti format and should be aligned already.
