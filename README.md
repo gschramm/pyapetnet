@@ -90,12 +90,6 @@ pyapetnet_predict_from_dicom osem_dcm_dir t1_dcm_dir S2_osem_b10_fdg_pe2i --show
 
 The source code of the prediction scripts can be found in the `pyapetnet` subfolder [here](pyapetnet/predict_from_nifti.py) and [here](pyapetnet/predict_from_dicom.py).
 
-## Installing tensorflow with GPU support
-
-By default pyapetnet only depends on `tensorflow-cpu` such that predictions can be made on machines without GPUs we well.
-In case you want to train your own pyapetnet model or you want to use GPUs for predictions,
-you can install tensorflow with GPU support following the [official installation instructions](https://www.tensorflow.org/install).
-
 ## Training your own model
 
 If you want to train your own model (from scratch or using transfer learning)
