@@ -1,5 +1,4 @@
-# latest tensorflow docker image, ships CPU version of tensorflow
-FROM tensorflow/tensorflow:latest
+FROM python:3.10
 
 # update pip3
 RUN pip install --no-cache-dir --upgrade pip
