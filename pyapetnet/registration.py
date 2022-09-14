@@ -124,9 +124,18 @@ def resample_sitk_image(volume: sitk.Image,
         int(round(osz * ospc / nspc)) for osz, ospc, nspc in zip(
             original_size, original_spacing, new_spacing)
     ]
+
+    # calculate the new origin
+    old_aff = affine_from_sitk_image(volume)
+    new_origin = tuple((old_aff @ np.array([
+        0.5 * (new_spacing[0] / original_spacing[0] - 1), 0.5 *
+        (new_spacing[1] / original_spacing[1] - 1), 0.5 *
+        (new_spacing[2] / original_spacing[2] - 1), 1
+    ]))[:-1])
+
     return sitk.Resample(volume, new_size, sitk.Transform(), interpolator,
-                         volume.GetOrigin(), new_spacing,
-                         volume.GetDirection(), 0, volume.GetPixelID())
+                         new_origin, new_spacing, volume.GetDirection(), 0,
+                         volume.GetPixelID())
 
 
 def align_and_resample(
@@ -139,6 +148,7 @@ def align_and_resample(
     init_mode: sitk.Transform | str = 'MOMENTS',
     registration_method: sitk.ImageRegistrationMethod | None = None,
     final_transform: sitk.Transform | None = None,
+    resample_only: bool = False,
     verbose: bool = False
 ) -> tuple[np.ndarray, np.ndarray, sitk.Transform, np.ndarray]:
     """wrapper to align and resample two 3D images using simple ITK
@@ -169,6 +179,8 @@ def align_and_resample(
         final transformation (e.g. loaded from file), by default None
         None -> calculate final transformation that maps moving image to
                 resampled fixed image
+    resample_only : bool, optional
+        resample images to common grid only based on affines, default False
     verbose : bool, optional
         print verbose output, by default False
 
@@ -176,8 +188,8 @@ def align_and_resample(
     -------
     tuple[np.ndarray, np.ndarray, sitk.Transform, np.ndarray]
         - the resampled fixed image 
-        - the aligned moving image, the final transform that maps the moving image to 
-        - the resampled fixed image 
+        - the aligned moving image
+        - the final transform that maps the moving image to the resampled fixed image 
           the affine matrix of the
         - resampled fixed image
     """
@@ -186,81 +198,86 @@ def align_and_resample(
     moving_image = array_to_sitk_image(moving_image, moving_affine)
 
     if not tuple(new_spacing) == fixed_image.GetSpacing():
+        # resample fixed image to the desired spacing (voxel sapce)
         fixed_image = resample_sitk_image(fixed_image, new_spacing)
 
-    # choose the initial transform
-    if init_mode == 'MOMENTS':
-        # based on moments of gray levels
-        initial_transform = sitk.CenteredTransformInitializer(
-            fixed_image, moving_image, sitk.Euler3DTransform(),
-            sitk.CenteredTransformInitializerFilter.MOMENTS)
-    elif init_mode == 'GEOMETRY':
-        # based on center of image volumes
-        initial_transform = sitk.CenteredTransformInitializer(
-            fixed_image, moving_image, sitk.Euler3DTransform(),
-            sitk.CenteredTransformInitializerFilter.GEOMETRY)
-    elif isinstance(init_mode, sitk.Transform):
-        initial_transform = init_mode
+    # get the initial transform based on the affine information from the header
+    resample_transform = sitk.Transform(moving_image.GetDimension(),
+                                        sitk.sitkIdentity)
+
+    if resample_only:
+        # transform that only resamples bewteen the different grids
+        final_transform = resample_transform
     else:
-        raise ValueError(
-            'initial tranform must be either None, GEOMETRY, MOMENTS or sitk.transform'
-        )
-    #elif init_mode is None:
-    #    # get the initial transform based on the affine information from the header
-    #    # not working yet
-    #    resampler = sitk.ResampleImageFilter()
-    #    resampler.SetReferenceImage(fixed_image)
-    #    _ = resampler.Execute(moving_image)
-    #    initial_transform = resampler.GetTransform()
+        # choose the initial transform
+        if init_mode == 'MOMENTS':
+            # based on moments of gray levels
+            initial_transform = sitk.CenteredTransformInitializer(
+                fixed_image, moving_image, sitk.Euler3DTransform(),
+                sitk.CenteredTransformInitializerFilter.MOMENTS)
+        elif init_mode == 'GEOMETRY':
+            # based on center of image volumes
+            initial_transform = sitk.CenteredTransformInitializer(
+                fixed_image, moving_image, sitk.Euler3DTransform(),
+                sitk.CenteredTransformInitializerFilter.GEOMETRY)
+        elif isinstance(init_mode, sitk.Transform):
+            initial_transform = init_mode
+        else:
+            raise ValueError(
+                'initial tranform must be either None, GEOMETRY, MOMENTS or sitk.transform'
+            )
 
-    # Registration
-    if registration_method is None:
-        registration_method = sitk.ImageRegistrationMethod()
+        # Registration
+        if registration_method is None:
+            registration_method = sitk.ImageRegistrationMethod()
 
-        # Similarity metric settings.
-        registration_method.SetMetricAsMattesMutualInformation(
-            numberOfHistogramBins=50)
-        registration_method.SetMetricSamplingStrategy(
-            registration_method.RANDOM)
-        registration_method.SetMetricSamplingPercentage(sampling_rate)
+            # Similarity metric settings.
+            registration_method.SetMetricAsMattesMutualInformation(
+                numberOfHistogramBins=50)
+            registration_method.SetMetricSamplingStrategy(
+                registration_method.RANDOM)
+            registration_method.SetMetricSamplingPercentage(sampling_rate)
 
-        registration_method.SetInterpolator(sitk.sitkLinear)
+            registration_method.SetInterpolator(sitk.sitkLinear)
 
-        # Optimizer settings.
-        registration_method.SetOptimizerAsConjugateGradientLineSearch(
-            learningRate=1.,
-            numberOfIterations=100,
-            convergenceMinimumValue=1e-6,
-            convergenceWindowSize=10)
-        #registration_method.SetOptimizerAsLBFGSB()
+            # Optimizer settings.
+            registration_method.SetOptimizerAsConjugateGradientLineSearch(
+                learningRate=1.,
+                numberOfIterations=100,
+                convergenceMinimumValue=1e-6,
+                convergenceWindowSize=10)
+            #registration_method.SetOptimizerAsLBFGSB()
 
-        if (init_mode == 'GEOMETRY') or (init_mode == 'MOMENTS'):
-            registration_method.SetOptimizerScalesFromPhysicalShift()
+            if (init_mode == 'GEOMETRY') or (init_mode == 'MOMENTS'):
+                registration_method.SetOptimizerScalesFromPhysicalShift()
 
-        # Setup for the multi-resolution framework.
-        registration_method.SetShrinkFactorsPerLevel(shrinkFactors=[4, 2, 1])
-        registration_method.SetSmoothingSigmasPerLevel(
-            smoothingSigmas=[2, 1, 0])
-        registration_method.SmoothingSigmasAreSpecifiedInPhysicalUnitsOn()
+            # Setup for the multi-resolution framework.
+            registration_method.SetShrinkFactorsPerLevel(
+                shrinkFactors=[4, 2, 1])
+            registration_method.SetSmoothingSigmasPerLevel(
+                smoothingSigmas=[2, 1, 0])
+            registration_method.SmoothingSigmasAreSpecifiedInPhysicalUnitsOn()
 
-        registration_method.SetInitialTransform(initial_transform,
-                                                inPlace=False)
+            registration_method.SetInitialTransform(initial_transform,
+                                                    inPlace=False)
 
-    if final_transform is None:
-        try:
-            final_transform = registration_method.Execute(
-                fixed_image, moving_image)
-        except:
-            warnings.warn('SITK registation failed. Using initial transform')
-            final_transform = initial_transform
+        if final_transform is None:
+            try:
+                final_transform = registration_method.Execute(
+                    fixed_image, moving_image)
+            except:
+                warnings.warn(
+                    'SITK registation failed. Using initial transform')
+                final_transform = resample_transform
 
-    # Post registration analysis
-    if verbose:
-        print(
-            f"Optimizer's stopping condition, {registration_method.GetOptimizerStopConditionDescription()}"
-        )
-        print(f"Final metric value: {registration_method.GetMetricValue()}")
-        print(f"Final parameters: {final_transform.GetParameters()}")
+        # Post registration analysis
+        if verbose:
+            print(
+                f"Optimizer's stopping condition, {registration_method.GetOptimizerStopConditionDescription()}"
+            )
+            print(
+                f"Final metric value: {registration_method.GetMetricValue()}")
+            print(f"Final parameters: {final_transform.GetParameters()}")
 
     moving_image_aligned = sitk.Resample(moving_image, fixed_image,
                                          final_transform, sitk.sitkLinear, 0.0,
