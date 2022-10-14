@@ -227,6 +227,17 @@ def main():
         except AttributeError:
             warn('Cannot copy tag ' + key)
 
+    # generate a dicom series number based on the input series numbers
+    pet_series_num = 2
+    if 'SeriesNumber' in pet_dcm.firstdcmheader:
+        pet_series_num = int(pet_dcm.firstdcmheader.SeriesNumber)
+
+    mr_series_num = 1
+    if 'SeriesNumber' in mr_dcm.firstdcmheader:
+        mr_series_num = int(mr_dcm.firstdcmheader.SeriesNumber)
+
+    series_num = 60000 + 100*pet_series_num + mr_series_num
+
     # write the dicom volume
     output_dcm_dir = os.path.join(output_dir, output_name)
     if not os.path.exists(output_dcm_dir):
@@ -238,6 +249,7 @@ def main():
                 ReconstructionMethod=
                 f'CNN MAP Bowsher {model_name} {pyapetnet.__version__}',
                 SeriesDescription=series_description,
+                SeriesNumber=series_num,
                 **dcm_kwargs)
         else:
             write_3d_static_dicom(
@@ -247,6 +259,7 @@ def main():
                 ReconstructionMethod=
                 f'CNN MAP Bowsher {model_name} {pyapetnet.__version__}',
                 SeriesDescription=series_description,
+                SeriesNumber=series_num,
                 **dcm_kwargs)
 
         print(f'wrote prediction to: {output_dcm_dir}')
