@@ -1,7 +1,4 @@
-FROM python:3.10
-
-# update pip3
-RUN pip install --no-cache-dir --upgrade pip
-
-# install pyapetnet from pypi
-RUN pip install --no-cache-dir pyapetnet
+FROM mambaorg/micromamba:latest
+RUN micromamba install --yes --name base --channel conda-forge \
+      pyapetnet~=1.5.1 && \
+    micromamba clean --all --yes
