@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import numpy as np
 from scipy.ndimage import find_objects, gaussian_filter
 

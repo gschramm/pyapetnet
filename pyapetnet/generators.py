@@ -1,16 +1,14 @@
+from __future__ import annotations
+
 import numpy as np
 import os
 import numpy as np
-import sys
 import nibabel as nb
-import warnings
 
 from scipy.ndimage import find_objects
 from scipy.ndimage.filters import gaussian_filter
-from scipy.ndimage.interpolation import shift, rotate
 from copy import deepcopy
 
-import tensorflow
 from tensorflow.keras.utils import Sequence
 
 from tempfile import NamedTemporaryFile

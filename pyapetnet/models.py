@@ -1,8 +1,9 @@
+from __future__ import annotations
+
 import os
 
-import tensorflow
 from tensorflow.keras.initializers import RandomNormal
-from tensorflow.keras.models import Sequential, Model
+from tensorflow.keras.models import Model
 from tensorflow.keras.layers import Input, Conv3D, ReLU, PReLU, BatchNormalization, Add, Concatenate, Cropping3D
 from tensorflow.keras.utils import plot_model
 
