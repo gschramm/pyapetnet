@@ -5,45 +5,48 @@ import os
 
 
 def main():
-    """ pyapetnet prediction from 3D nifti images"""
+    """pyapetnet prediction from 3D nifti images"""
     parser = argparse.ArgumentParser(
-        description='pyapetnet prediction of anatomy-guided PET reconstruction'
+        description="pyapetnet prediction of anatomy-guided PET reconstruction"
     )
-    parser.add_argument('pet_fname',
-                        help='absolute path of PET input nifti file')
-    parser.add_argument('mr_fname',
-                        help='absolute path of MR  input nifti file')
-    parser.add_argument('model_name', help='name of trained CNN')
+    parser.add_argument("pet_fname", help="absolute path of PET input nifti file")
+    parser.add_argument("mr_fname", help="absolute path of MR  input nifti file")
+    parser.add_argument("model_name", help="name of trained CNN")
     parser.add_argument(
-        '--model_path',
-        help='absolute path of directory containing trained models',
-        default=None)
-    parser.add_argument('--output_dir',
-                        help='name of the output directory',
-                        default='.')
-    parser.add_argument('--output_name',
-                        help='basename of prediction file',
-                        default=None)
-    parser.add_argument('--no_coreg',
-                        help='do not coregister input volumes',
-                        action='store_true')
-    parser.add_argument('--no_crop',
-                        help='do not crop volumes to MR bounding box',
-                        action='store_true')
-    parser.add_argument('--show', help='show the results', action='store_true')
-    parser.add_argument('--verbose',
-                        help='print (extra) verbose output',
-                        action='store_true')
-    parser.add_argument('--no_preproc_save',
-                        help='do not save preprocessed volumes',
-                        action='store_true')
-    parser.add_argument('--output_on_mr_grid',
-                        help='regrid the CNN output to the original MR grid',
-                        action='store_true')
+        "--model_path",
+        help="absolute path of directory containing trained models",
+        default=None,
+    )
+    parser.add_argument(
+        "--output_dir", help="name of the output directory", default="."
+    )
+    parser.add_argument(
+        "--output_name", help="basename of prediction file", default=None
+    )
+    parser.add_argument(
+        "--no_coreg", help="do not coregister input volumes", action="store_true"
+    )
+    parser.add_argument(
+        "--no_crop", help="do not crop volumes to MR bounding box", action="store_true"
+    )
+    parser.add_argument("--show", help="show the results", action="store_true")
+    parser.add_argument(
+        "--verbose", help="print (extra) verbose output", action="store_true"
+    )
+    parser.add_argument(
+        "--no_preproc_save",
+        help="do not save preprocessed volumes",
+        action="store_true",
+    )
+    parser.add_argument(
+        "--output_on_mr_grid",
+        help="regrid the CNN output to the original MR grid",
+        action="store_true",
+    )
 
     args = parser.parse_args()
 
-    #-------------------------------------------------------------------------------------------------
+    # -------------------------------------------------------------------------------------------------
     # load modules
 
     import pyapetnet
@@ -59,7 +62,7 @@ def main():
     import pymirc.viewer as pv
     from pymirc.image_operations import aff_transform
 
-    #-------------------------------------------------------------------------------------------------
+    # -------------------------------------------------------------------------------------------------
     # parse input parameters
 
     pet_fname = args.pet_fname
@@ -69,13 +72,12 @@ def main():
     output_name = args.output_name
 
     if output_name is None:
-        output_name = f'prediction_{model_name}.nii'
+        output_name = f"prediction_{model_name}.nii"
 
     model_path = args.model_path
 
     if model_path is None:
-        model_path = os.path.join(os.path.dirname(pyapetnet.__file__),
-                                  'trained_models')
+        model_path = os.path.join(os.path.dirname(pyapetnet.__file__), "trained_models")
 
     coreg_inputs = not args.no_coreg
     crop_mr = not args.no_crop
@@ -84,23 +86,24 @@ def main():
     save_preproc = not args.no_preproc_save
     output_on_mr_grid = args.output_on_mr_grid
 
-    #-------------------------------------------------------------------------------------------------
+    # -------------------------------------------------------------------------------------------------
     # load the trained model
 
-    co = {'ssim_3d_loss': None, 'mix_ssim_3d_mae_loss': None}
+    co = {"ssim_3d_loss": None, "mix_ssim_3d_mae_loss": None}
 
     if verbose:
-        print('loading CNN {os.path.join(model_path, model_name)}')
+        print("loading CNN {os.path.join(model_path, model_name)}")
 
-    model = tf.keras.models.load_model(os.path.join(model_path, model_name),
-                                       custom_objects=co)
+    model = tf.keras.models.load_model(
+        os.path.join(model_path, model_name), custom_objects=co
+    )
 
     # load the voxel size used for training
-    with open(os.path.join(model_path, model_name, 'config.json')) as f:
+    with open(os.path.join(model_path, model_name, "config.json")) as f:
         cfg = json.load(f)
-        training_voxsize = cfg['internal_voxsize'] * np.ones(3)
+        training_voxsize = cfg["internal_voxsize"] * np.ones(3)
 
-    #------------------------------------------------------------------
+    # ------------------------------------------------------------------
     # load and preprocess the input PET and MR volumes
     pet, pet_affine = load_nii_in_ras(pet_fname)
     mr, mr_affine = load_nii_in_ras(mr_fname)
@@ -115,13 +118,14 @@ def main():
         perc=99.99,
         coreg=coreg_inputs,
         crop_mr=crop_mr,
-        verbose=verbose)
+        verbose=verbose,
+    )
 
-    #------------------------------------------------------------------
+    # ------------------------------------------------------------------
     # the actual CNN prediction
     x = [
         np.expand_dims(np.expand_dims(pet_preproc, 0), -1),
-        np.expand_dims(np.expand_dims(mr_preproc, 0), -1)
+        np.expand_dims(np.expand_dims(mr_preproc, 0), -1),
     ]
     pred = model.predict(x).squeeze()
 
@@ -130,28 +134,34 @@ def main():
     pet_preproc *= pet_scale
     mr_preproc *= mr_scale
 
-    #------------------------------------------------------------------
+    # ------------------------------------------------------------------
     # save the preprocessed input and output
     os.makedirs(output_dir, exist_ok=True)
 
     if save_preproc:
-        nib.save(nib.Nifti1Image(pet_preproc, o_aff),
-                 os.path.join(output_dir, 'pet_preproc.nii'))
+        nib.save(
+            nib.Nifti1Image(pet_preproc, o_aff),
+            os.path.join(output_dir, "pet_preproc.nii"),
+        )
         if verbose:
             print(
                 f'wrote pre-processed PET to: {os.path.join(output_dir, "pet_preproc.nii")}'
             )
 
-        nib.save(nib.Nifti1Image(mr_preproc, o_aff),
-                 os.path.join(output_dir, 'mr_preproc.nii'))
+        nib.save(
+            nib.Nifti1Image(mr_preproc, o_aff),
+            os.path.join(output_dir, "mr_preproc.nii"),
+        )
         if verbose:
             print(
                 f'wrote pre-processed MR  to: {os.path.join(output_dir, "mr_preproc.nii")}'
             )
 
         # save the intensity normalization factors
-        np.savetxt(os.path.join(output_dir, 'preproc_scaling_factors.txt'),
-                   np.array([pet_scale, mr_scale]))
+        np.savetxt(
+            os.path.join(output_dir, "preproc_scaling_factors.txt"),
+            np.array([pet_scale, mr_scale]),
+        )
         if verbose:
             print(
                 f'wrote scaling factors   to: {os.path.join(output_dir, "preproc_scaling_factors.txt")}'
@@ -159,50 +169,47 @@ def main():
 
     if output_on_mr_grid:
         oss = np.ceil(
-            np.linalg.norm(mr_affine[:-1, :-1], axis=0) /
-            training_voxsize).astype(int)
-        pred_regrid = aff_transform(pred,
-                                    np.linalg.inv(o_aff) @ mr_affine,
-                                    mr.shape,
-                                    cval=pred.min(),
-                                    os0=oss[0],
-                                    os1=oss[1],
-                                    os2=oss[2])
-        nib.save(nib.Nifti1Image(pred_regrid, mr_affine),
-                 os.path.join(output_dir, output_name))
-    else:
-        nib.save(nib.Nifti1Image(pred, o_aff),
-                 os.path.join(output_dir, output_name))
-    if verbose:
-        print(
-            f'wrote prediction to       : {os.path.join(output_dir, output_name)}'
+            np.linalg.norm(mr_affine[:-1, :-1], axis=0) / training_voxsize
+        ).astype(int)
+        pred_regrid = aff_transform(
+            pred,
+            np.linalg.inv(o_aff) @ mr_affine,
+            mr.shape,
+            cval=pred.min(),
+            os0=oss[0],
+            os1=oss[1],
+            os2=oss[2],
         )
+        nib.save(
+            nib.Nifti1Image(pred_regrid, mr_affine),
+            os.path.join(output_dir, output_name),
+        )
+    else:
+        nib.save(nib.Nifti1Image(pred, o_aff), os.path.join(output_dir, output_name))
+    if verbose:
+        print(f"wrote prediction to       : {os.path.join(output_dir, output_name)}")
 
-    #------------------------------------------------------------------
+    # ------------------------------------------------------------------
     # show the results
     if show:
         pmax = np.percentile(pred, 99.9)
         mmax = np.percentile(mr_preproc, 99.9)
 
-        ims = [{
-            'vmin': 0,
-            'vmax': mmax,
-            'cmap': plt.cm.Greys_r
-        }, {
-            'vmin': 0,
-            'vmax': pmax
-        }, {
-            'vmin': 0,
-            'vmax': pmax
-        }]
-        vi = pv.ThreeAxisViewer([
-            np.flip(mr_preproc, (0, 1)),
-            np.flip(pet_preproc, (0, 1)),
-            np.flip(pred, (0, 1))
-        ],
-                                imshow_kwargs=ims)
+        ims = [
+            {"vmin": 0, "vmax": mmax, "cmap": plt.cm.Greys_r},
+            {"vmin": 0, "vmax": pmax},
+            {"vmin": 0, "vmax": pmax},
+        ]
+        vi = pv.ThreeAxisViewer(
+            [
+                np.flip(mr_preproc, (0, 1)),
+                np.flip(pet_preproc, (0, 1)),
+                np.flip(pred, (0, 1)),
+            ],
+            imshow_kwargs=ims,
+        )
         plt.show()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
