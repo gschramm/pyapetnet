@@ -1,0 +1,54 @@
+# Workflow to build the parallelproj C/CUDA libs (incl. installation of CUDA)
+name: micromamba build
+
+on:
+  push:
+    branches: [ "master" ]
+  pull_request:
+    branches: [ "master" ]
+
+env:
+  # Customize the CMake build type here (Release, Debug, RelWithDebInfo, etc.)
+  BUILD_TYPE: Release
+
+jobs:
+  build:
+    # The CMake configure and build commands are platform agnostic and should work equally well on Windows or Mac.
+    # You can convert this to a matrix build if you need cross-platform coverage.
+    # See: https://docs.github.com/en/free-pro-team@latest/actions/learn-github-actions/managing-complex-workflows#using-a-build-matrix
+    runs-on: ubuntu-latest
+    env:
+      MPLBACKEND: Agg  # https://github.com/orgs/community/discussions/26434
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - uses: mamba-org/setup-micromamba@v1
+      with:
+        micromamba-version: '1.3.1-0'
+        environment-file: environment.yml
+        init-shell: >-
+          bash
+          powershell
+        cache-environment: true
+        post-cleanup: 'all'
+       
+    - name: Install python package
+      run: |
+        pip install .
+        
+#    - name: Lint with flake8 - python ${{ matrix.python-version }}
+#      run: |
+#        # stop the build if there are Python syntax errors or undefined names
+#        # E203 seems not pep8 compatible, so we ignore it
+#        flake8 --count --show-source --statistics --max-line-length 127 --extend-ignore=E203 pyapetnet
+#
+    - name: Run nifti prediction
+      run: |
+        cd demo_data
+        pyapetnet_predict_from_nifti brainweb_06_osem.nii brainweb_06_t1.nii S2_osem_b10_fdg_pe2i
+
+    - name: Run dicom prediction
+      run: |
+        cd demo_data
+        pyapetnet_predict_from_dicom brainweb_06_osem_dcm brainweb_06_t1_dcm S2_osem_b10_fdg_pe2i

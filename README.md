@@ -10,7 +10,7 @@ Georg Schramm, David Rigie
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ## Scientific Publication
 
@@ -21,27 +21,11 @@ If we you are using pyapetnet in scientific publications, we appreciate citation
 
 ### Install miniconda or miniforge
 
-Install the miniconda or miniforge (conda from conda-forge) python distribution and to be able create a conda virtual environment for pyapetnet.
+Install the mambaforge from [here](https://github.com/conda-forge/miniforge/releases) and create a new virtual environment containing 
+`pyapetnet` and all dependencies
 
 ```
-conda create -n pyapetnet python~=3.10 pip
-```
-
-### Installation of a stable version of pyapetnet from pypi
-
-```
-conda activate pyapetnet
-pip install pyapetnet
-```
-
-### Install the latest (unstable) version (not recommended)
-
-```
-conda activate pyapetnet
-cd /foo/bar/my_favorite_dir
-git clone git@github.com:gschramm/pyapetnet.git
-cd pyapetnet
-pip install .
+mamba create -n pyapetnet pyapetnet
 ```
 
 ## Testing the installation
@@ -49,7 +33,7 @@ pip install .
 To test the installation activate the virtual conda environment
 
 ```
-conda activate pyapetnet
+mamba activate pyapetnet
 ```
 
 and run

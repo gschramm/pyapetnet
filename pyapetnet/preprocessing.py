@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import numpy as np
 from scipy.ndimage import find_objects, gaussian_filter
 
@@ -16,7 +18,7 @@ def preprocess_volumes(
     coreg: bool = True,
     crop_mr: bool = True,
     mr_ps_fwhm_mm: float | None = None,
-    verbose: bool = False
+    verbose: bool = False,
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray, float, float, sitk.Transform]:
     """Preporcess (resample, align and intensity normalize) volumes for pyapetnet
 
@@ -51,7 +53,7 @@ def preprocess_volumes(
     - the affine matrix of the proprocessed MR (cropped and resampled)
     - values used for PET intensity normalization
     - values used for MR intensity normalization
-    - the final transform that maps the moving PET image to the resampled fixed MR image 
+    - the final transform that maps the moving PET image to the resampled fixed MR image
     """
     mr_voxsize = np.linalg.norm(mr_affine[:-1, :-1], axis=0)
 
@@ -65,31 +67,44 @@ def preprocess_volumes(
 
     # post-smooth MR if needed
     if mr_ps_fwhm_mm is not None:
-        print(f'post-smoothing MR with {mr_ps_fwhm_mm} mm')
+        print(f"post-smoothing MR with {mr_ps_fwhm_mm} mm")
         mr_vol = gaussian_filter(mr_vol, mr_ps_fwhm_mm / (2.35 * mr_voxsize))
 
-    mr_vol_interpolated, pet_vol_mr_grid_interpolated, transform, m_aff = align_and_resample(
+    (
+        mr_vol_interpolated,
+        pet_vol_mr_grid_interpolated,
+        transform,
+        m_aff,
+    ) = align_and_resample(
         mr_vol,
         pet_vol,
         mr_affine,
         pet_affine,
         new_spacing=training_voxsize,
         resample_only=(not coreg),
-        verbose=verbose)
+        verbose=verbose,
+    )
 
     # convert the input volumes to float32
     if not mr_vol_interpolated.dtype == np.float32:
         mr_vol_interpolated = mr_vol_interpolated.astype(np.float32)
     if not pet_vol_mr_grid_interpolated.dtype == np.float32:
-        pet_vol_mr_grid_interpolated = pet_vol_mr_grid_interpolated.astype(
-            np.float32)
+        pet_vol_mr_grid_interpolated = pet_vol_mr_grid_interpolated.astype(np.float32)
 
     # normalize the data: we divide the images by the specified percentile (more stable than the max)
-    if verbose: print('\nnormalizing the input images')
+    if verbose:
+        print("\nnormalizing the input images")
     mr_max = float(np.percentile(mr_vol_interpolated, perc))
     mr_vol_interpolated /= mr_max
 
     pet_max = float(np.percentile(pet_vol_mr_grid_interpolated, perc))
     pet_vol_mr_grid_interpolated /= pet_max
 
-    return pet_vol_mr_grid_interpolated, mr_vol_interpolated, m_aff, pet_max, mr_max, transform
+    return (
+        pet_vol_mr_grid_interpolated,
+        mr_vol_interpolated,
+        m_aff,
+        pet_max,
+        mr_max,
+        transform,
+    )
