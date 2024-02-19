@@ -75,7 +75,6 @@ def main():
 
     import pyapetnet
     from pyapetnet.preprocessing import preprocess_volumes
-    from pyapetnet.utils import load_nii_in_ras
     from pymirc.fileio import DicomVolume, write_3d_static_dicom
 
     import nibabel as nib
