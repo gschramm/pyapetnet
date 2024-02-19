@@ -1,5 +1,4 @@
 # pyapetnet
-dummy
 
 A convolutional neurol network (CNN) to mimick the behavior of anatomy-guided PET reconstruction in image space.
 
