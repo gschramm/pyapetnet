@@ -29,8 +29,7 @@ setuptools.setup(
     ],
     python_requires='>=3.8',
     install_requires=[
-        'SimpleITK>=2.0', 'pymirc>=0.29', 'tensorflow>=2.2',
-        'nibabel>=3.0', 'matplotlib>=3.1', 'pydicom>=2.0'],
+        'SimpleITK>=2.0', 'pymirc>=0.29', 'tensorflow>=2.2'],
     entry_points={
         'console_scripts': [
             'pyapetnet_predict_from_nifti=pyapetnet.predict_from_nifti:main',
