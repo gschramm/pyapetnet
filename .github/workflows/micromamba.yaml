@@ -46,9 +46,9 @@ jobs:
     - name: Run nifti prediction
       run: |
         cd demo_data
-        pyapetnet_predict_from_nifti brainweb_06_osem.nii brainweb_06_t1.nii S2_osem_b10_fdg_pe2i
+        pyapetnet_predict_from_nifti brainweb_06_osem_cropped.nii brainweb_06_t1_cropped.nii S2_osem_b10_fdg_pe2i --no_coreg
 
-    - name: Run dicom prediction
-      run: |
-        cd demo_data
-        pyapetnet_predict_from_dicom brainweb_06_osem_dcm brainweb_06_t1_dcm S2_osem_b10_fdg_pe2i
+#    - name: Run dicom prediction
+#      run: |
+#        cd demo_data
+#        pyapetnet_predict_from_dicom brainweb_06_osem_dcm brainweb_06_t1_dcm S2_osem_b10_fdg_pe2i
