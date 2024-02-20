@@ -22,23 +22,23 @@ jobs:
 
     strategy:
       matrix:
-        os: [ubuntu-latest, windows-latest] # not building on mac-os because there is no OpenMP
-        python-version: [ '3.9']
+        os: [ubuntu-latest, windows-latest]
+        python-version: ['3.9', '3.10']
 
     steps:
     - uses: actions/checkout@v3
 
     - name: Set up python ${{ matrix.python-version }}
-    uses: actions/setup-python@v5
-    with:
-      python-version: ${{ matrix.python-version }}
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ matrix.python-version }}
 
-    - name: Install python ${{ matrix.python-version }} dependencies
-    run: |
-      python -m pip install --upgrade pip
-      pip install .
+    - name: Install package ${{ matrix.python-version }} 
+      run: |
+        python -m pip install --upgrade pip
+        pip install .
       
-    - name: Run nifti prediction
+    - name: Run nifti prediction ${{ matrix.python-version }}
       run: |
         cd demo_data
         pyapetnet_predict_from_nifti brainweb_06_osem_cropped.nii brainweb_06_t1_cropped.nii S2_osem_b10_fdg_pe2i --no_coreg
