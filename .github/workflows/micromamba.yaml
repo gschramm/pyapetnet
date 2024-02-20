@@ -35,6 +35,7 @@ jobs:
        
     - name: Install python package
       run: |
+        mamba activate pyapetnet
         pip install .
         
 #    - name: Lint with flake8 - python ${{ matrix.python-version }}
@@ -45,6 +46,7 @@ jobs:
 #
     - name: Run nifti prediction
       run: |
+        mamba activate pyapetnet
         cd demo_data
         pyapetnet_predict_from_nifti brainweb_06_osem_cropped.nii brainweb_06_t1_cropped.nii S2_osem_b10_fdg_pe2i --no_coreg
 
