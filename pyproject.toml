@@ -1,3 +1,13 @@
+# version is auto-derived from git tags / archives
+# see https://pypi.org/project/setuptools-scm/
+[build-system]
+requires = ["setuptools>=45", "setuptools_scm[toml]>=7.0"]
+# needed to detect version number from git tags / archives
+[tool.setuptools_scm]
+
+# hint where the python sources can be found
+[tool.setuptools.packages.find]
+where = ["pyapetnet"]
 
 [project]
 name = "pyapetnet"
@@ -27,14 +37,3 @@ Homepage = "https://github.com/gschramm/pyapetnet"
 pyapetnet_list_models = "pyapetnet.list_models:main"
 pyapetnet_predict_from_dicom = "pyapetnet.predict_from_dicom:main"
 pyapetnet_predict_from_nifti = "pyapetnet.predict_from_nifti:main"
-
-# version is auto-derived from git tags / archives
-# see https://pypi.org/project/setuptools-scm/
-[build-system]
-requires = ["setuptools>=45", "setuptools_scm[toml]>=7.0"]
-# needed to detect version number from git tags / archives
-[tool.setuptools_scm]
-
-# hint where the python sources can be found
-[tool.setuptools.packages.find]
-where = ["pyapetnet"]
