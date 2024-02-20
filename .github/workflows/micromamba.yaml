@@ -27,28 +27,15 @@ jobs:
       with:
         micromamba-version: '1.3.1-0'
         environment-file: environment.yml
-        init-shell: >-
-          bash
-          powershell
-        cache-environment: true
+        init-shell: bash
+        cache-environment: false
         post-cleanup: 'all'
        
     - name: Install python package
       run: |
         pip install .
         
-#    - name: Lint with flake8 - python ${{ matrix.python-version }}
-#      run: |
-#        # stop the build if there are Python syntax errors or undefined names
-#        # E203 seems not pep8 compatible, so we ignore it
-#        flake8 --count --show-source --statistics --max-line-length 127 --extend-ignore=E203 pyapetnet
-#
     - name: Run nifti prediction
       run: |
         cd demo_data
         pyapetnet_predict_from_nifti brainweb_06_osem_cropped.nii brainweb_06_t1_cropped.nii S2_osem_b10_fdg_pe2i --no_coreg
-
-#    - name: Run dicom prediction
-#      run: |
-#        cd demo_data
-#        pyapetnet_predict_from_dicom brainweb_06_osem_dcm brainweb_06_t1_dcm S2_osem_b10_fdg_pe2i
