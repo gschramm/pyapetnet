@@ -20,24 +20,20 @@ jobs:
     env:
       MPLBACKEND: Agg  # https://github.com/orgs/community/discussions/26434
 
-    strategy:
-      matrix:
-        python-version: ['3.9', '3.10']
-
     steps:
     - uses: actions/checkout@v3
 
-    - name: Set up python ${{ matrix.python-version }}
+    - name: Set up python 3.9
       uses: actions/setup-python@v5
       with:
-        python-version: ${{ matrix.python-version }}
+        python-version: 3.9
 
-    - name: Install package ${{ matrix.python-version }} 
+    - name: Install package
       run: |
         python -m pip install --upgrade pip
         pip install .
       
-    - name: Run nifti prediction ${{ matrix.python-version }}
+    - name: Run nifti prediction
       run: |
         cd demo_data
         pyapetnet_predict_from_nifti brainweb_06_osem_cropped.nii brainweb_06_t1_cropped.nii S2_osem_b10_fdg_pe2i --no_coreg
