@@ -1,0 +1,2 @@
+# install the package
+pip install -e .
