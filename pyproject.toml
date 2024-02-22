@@ -38,3 +38,8 @@ distribution = true
 [tool.pdm.version]
 source = "file"
 path = "src/pyapetnet/__init__.py"
+
+[tool.pdm.dev-dependencies]
+testing = [
+    "pytest>=8.0.1",
+]

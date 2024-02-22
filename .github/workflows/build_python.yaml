@@ -25,7 +25,9 @@ jobs:
       - name: Install dependencies
         run: |
           pdm sync -d -G testing
-          pip install pytest
+      - name: Install package
+        run: |
+          pdm install
       - name: Run Tests
         run: |
           pdm run -v pytest tests
