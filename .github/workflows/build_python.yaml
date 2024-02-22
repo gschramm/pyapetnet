@@ -28,6 +28,7 @@ jobs:
       - name: Install package
         run: |
           pdm install
+          pip list --local
       - name: Run Tests
         run: |
           pdm run -v pytest tests
