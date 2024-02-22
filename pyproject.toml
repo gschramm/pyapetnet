@@ -43,3 +43,6 @@ path = "src/pyapetnet/__init__.py"
 test = [
     "pytest>=8.0.1",
 ]
+
+[tool.pdm.version]
+source = "scm"
