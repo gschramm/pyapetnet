@@ -9,10 +9,10 @@ requires-python = ">=3.9,<3.11"
 readme = "README.md"
 license = {text = "MIT"}
 dependencies = [
-    "tensorflow~=2.2",
     "SimpleITK~=2.0",
     "pymirc~=0.29",
     "click~=8.0",
+    "tensorflow~=2.2",
 ]
 classifiers = [
     "License :: OSI Approved :: MIT License",
