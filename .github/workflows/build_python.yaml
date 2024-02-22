@@ -25,7 +25,6 @@ jobs:
       - name: Install dependencies and package
         run: |
           pdm update -d -G test
-          pdm install -d -G test
           pdm list
       - name: Run Tests
         run: |
