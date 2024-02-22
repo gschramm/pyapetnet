@@ -1,44 +1,46 @@
-[build-system]
-requires = ["hatchling",
-"hatch-vcs"]
-build-backend = "hatchling.build"
-
 [project]
 name = "pyapetnet"
 dynamic = ["version"]
-description = "a CNN for anatomy-guided deconvolution and denoising of PET images"
-readme = "README.md"
-license = "MIT"
-requires-python = ">=3.8"
+description = "Default template for PDM package"
 authors = [
-    { name = "Georg Schramm", email = "georg.schramm@kuleuven.be" },
+    {name = "Georg Schramm", email = "georg.schramm@kuleuven.be"},
+]
+requires-python = ">=3.9,<3.11"
+readme = "README.md"
+license = {text = "MIT"}
+dependencies = [
+    "SimpleITK~=2.0",
+    "pymirc~=0.29",
+    "click~=8.0",
+    "tensorflow~=2.2",
 ]
 classifiers = [
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
 ]
-dependencies = [
-    "pymirc>=0.29",
-    "SimpleITK>=2.0",
-    "tensorflow>=2.2",
-]
 
 [project.scripts]
-pyapetnet_list_models = "pyapetnet.list_models:main"
-pyapetnet_predict_from_dicom = "pyapetnet.predict_from_dicom:main"
-pyapetnet_predict_from_nifti = "pyapetnet.predict_from_nifti:main"
+pyapetnet_list_models = "pyapetnet.scripts.list_models:list_models"
+pyapetnet_predict_from_dicom = "pyapetnet.scripts.predict_from_dicom:predict_from_dicom"
+pyapetnet_predict_from_nifti = "pyapetnet.scripts.predict_from_nifti:predict_from_nifti"
 
 [project.urls]
 Homepage = "https://github.com/gschramm/pyapetnet"
 
-[tool.hatch.version]
-source = "vcs"
+[build-system]
+requires = ["pdm-backend"]
+build-backend = "pdm.backend"
 
-[tool.hatch.build.hooks.vcs]
-version-file = "pyapetnet/_version.py"
+[tool.pdm]
+distribution = true
 
-[tool.hatch.build.targets.sdist]
-include = [
-    "/pyapetnet",
+[tool.pdm.dev-dependencies]
+test = [
+    "pytest>=8.0.1",
 ]
+
+[tool.pdm.version]
+source = "scm"
+write_to = "pyapetnet/_version.py"
+write_template = "__version__ = '{}'"

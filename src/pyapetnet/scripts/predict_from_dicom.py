@@ -1,77 +1,76 @@
 from __future__ import annotations
 
-import argparse
 import os
+import click
+
+CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
 
 
-def main():
-    """pyapetnet prediction from 3D dicom images"""
-    parser = argparse.ArgumentParser(
-        description="pyapetnet prediction of anatomy-guided PET reconstruction"
-    )
-    parser.add_argument(
-        "pet_dcm_dir", help="absolute path of PET input dicom directory"
-    )
-    parser.add_argument("mr_dcm_dir", help="absolute path of MR  input dicom directory")
-    parser.add_argument("model_name", help="name of trained CNN")
-
-    parser.add_argument(
-        "--pet_dcm_pattern", help="file pattern for PET dicom dir", default="*"
-    )
-    parser.add_argument(
-        "--mr_dcm_pattern", help="file pattern for MR dicom dir", default="*"
-    )
-    parser.add_argument(
-        "--model_path",
-        help="absolute path of directory containing trained models",
-        default=None,
-    )
-    parser.add_argument(
-        "--output_dir", help="name of the output directory", default="."
-    )
-    parser.add_argument(
-        "--output_name", help="basename of prediction file", default=None
-    )
-    parser.add_argument(
-        "--no_coreg", help="do not coregister input volumes", action="store_true"
-    )
-    parser.add_argument(
-        "--no_crop", help="do not crop volumes to MR bounding box", action="store_true"
-    )
-    parser.add_argument("--show", help="show the results", action="store_true")
-    parser.add_argument(
-        "--verbose", help="print (extra) verbose output", action="store_true"
-    )
-    parser.add_argument(
-        "--no_preproc_save",
-        help="do not save preprocessed volumes",
-        action="store_true",
-    )
-    parser.add_argument(
-        "--output_on_mr_grid",
-        help="regrid the CNN output to the original MR grid",
-        action="store_true",
-    )
-    parser.add_argument(
-        "--series_description_prefix",
-        help="dicom series description prefix for prediction - default: empty string",
-        default="",
-    )
-    parser.add_argument(
-        "--series_description",
-        help="dicom series description for prediction - default: CNN MAP Bowsher",
-        default="CNN AGR Bowsher",
-    )
-    parser.add_argument(
-        "--series_description_suffix",
-        help="dicom series description suffix for prediction - default model name: and package version",
-        default=None,
-    )
-
-    args = parser.parse_args()
-
-    # -------------------------------------------------------------------------------------------------
-    # load modules
+@click.command(context_settings=CONTEXT_SETTINGS)
+@click.argument("pet_dcm_dir")
+@click.argument("mr_dcm_dir")
+@click.argument("model_name")
+@click.option("--pet_dcm_pattern", help="file pattern for PET dicom dir", default="*")
+@click.option("--mr_dcm_pattern", help="file pattern for MR dicom dir", default="*")
+@click.option(
+    "--model_path",
+    help="absolute path of directory containing trained models",
+    default=None,
+)
+@click.option("--output_dir", help="name of the output directory", default=".")
+@click.option("--output_name", help="basename of prediction file", default=None)
+@click.option(
+    "--coreg_inputs/--no-coreg_inputs", default=True, help="coregister input volumes"
+)
+@click.option(
+    "--crop_mr/--no-crop_mr", default=True, help="crop volumes to MR bounding box"
+)
+@click.option("--show/--no-show", default=True, help="show the results")
+@click.option(
+    "--verbose/--no-verbose", default=False, help="print (extra) verbose output"
+)
+@click.option(
+    "--save_preproc/--no-save_preproc", default=True, help="save preprocessed volumes"
+)
+@click.option(
+    "--output_on_mr_grid/--no-output_on_mr_grid",
+    default=False,
+    help="regrid the CNN output to the original MR grid",
+)
+@click.option(
+    "--series_description_prefix",
+    help="dicom series description prefix for prediction - default: empty string",
+    default="",
+)
+@click.option(
+    "--series_description",
+    help="dicom series description for prediction - default: CNN MAP Bowsher",
+    default="CNN AGR Bowsher",
+)
+@click.option(
+    "--series_description_suffix",
+    help="dicom series description suffix for prediction - default model name: and package version",
+    default=None,
+)
+def predict_from_dicom(
+    pet_dcm_dir: str,
+    mr_dcm_dir: str,
+    pet_dcm_pattern: str,
+    mr_dcm_pattern: str,
+    model_name: str,
+    model_path: str,
+    output_dir: str,
+    output_name: str,
+    coreg_inputs: bool,
+    crop_mr: bool,
+    show: bool,
+    verbose: bool,
+    save_preproc: bool,
+    output_on_mr_grid: bool,
+    series_description_prefix: str,
+    series_description: str,
+    series_description_suffix: str,
+) -> None:
 
     import pyapetnet
     from pyapetnet.preprocessing import preprocess_volumes
@@ -89,38 +88,11 @@ def main():
     from pyapetnet.utils import flip_ras_lps, pet_dcm_keys_to_copy
     from warnings import warn
 
-    # -------------------------------------------------------------------------------------------------
-    # parse input parameters
-
-    pet_dcm_dir = args.pet_dcm_dir
-    mr_dcm_dir = args.mr_dcm_dir
-    pet_dcm_pattern = args.pet_dcm_pattern
-    mr_dcm_pattern = args.mr_dcm_pattern
-
-    model_name = args.model_name
-    output_dir = args.output_dir
-    output_name = args.output_name
-
     if output_name is None:
         output_name = f"prediction_{model_name}"
-
-    model_path = args.model_path
-
     if model_path is None:
         model_path = os.path.join(os.path.dirname(pyapetnet.__file__), "trained_models")
 
-    coreg_inputs = not args.no_coreg
-    crop_mr = not args.no_crop
-    show = args.show
-    verbose = args.verbose
-    save_preproc = not args.no_preproc_save
-    output_on_mr_grid = args.output_on_mr_grid
-
-    series_description_prefix = args.series_description_prefix
-    series_description = args.series_description
-    series_description_suffix = args.series_description_suffix
-
-    series_description_prefix = args.series_description_prefix
     if series_description_suffix is None:
         series_description_suffix = f"__m{model_name}_v{pyapetnet.__version__}"
 
@@ -304,4 +276,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    predict_from_dicom()

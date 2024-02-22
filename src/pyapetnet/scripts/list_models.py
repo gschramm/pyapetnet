@@ -1,11 +1,16 @@
 from __future__ import annotations
 
+import click
 import os
 import argparse
 from glob import glob
 
 
-def main():
+CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
+
+
+@click.command(context_settings=CONTEXT_SETTINGS)
+def list_models():
     """list available pre-trained pyapetnet models"""
 
     parser = argparse.ArgumentParser(
@@ -41,4 +46,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    list_models()
