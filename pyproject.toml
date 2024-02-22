@@ -40,6 +40,6 @@ source = "file"
 path = "src/pyapetnet/__init__.py"
 
 [tool.pdm.dev-dependencies]
-testing = [
+test = [
     "pytest>=8.0.1",
 ]
