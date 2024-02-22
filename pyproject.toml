@@ -21,9 +21,9 @@ classifiers = [
 ]
 
 [project.scripts]
-pyapetnet_list_models = "pyapetnet.list_models:main"
-pyapetnet_predict_from_dicom = "pyapetnet.predict_from_dicom:main"
-pyapetnet_predict_from_nifti = "pyapetnet.predict_from_nifti:main"
+pyapetnet_list_models = "pyapetnet.scripts.list_models:list_models"
+pyapetnet_predict_from_dicom = "pyapetnet.scripts.predict_from_dicom:predict_from_dicom"
+pyapetnet_predict_from_nifti = "pyapetnet.scripts.predict_from_nifti:predict_from_nifti"
 
 [project.urls]
 Homepage = "https://github.com/gschramm/pyapetnet"
