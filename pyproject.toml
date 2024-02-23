@@ -1,7 +1,7 @@
 [project]
 name = "pyapetnet"
 dynamic = ["version"]
-description = "Default template for PDM package"
+description = "CNN for anatomy-guided PET reconstruction"
 authors = [
     {name = "Georg Schramm", email = "georg.schramm@kuleuven.be"},
 ]

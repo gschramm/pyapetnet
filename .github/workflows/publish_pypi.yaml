@@ -1,0 +1,35 @@
+name: pypi publish
+
+on:
+  push:
+    tags:
+      - "v[0-9]+"
+      - "v[0-9]+.[0-9]+"
+      - "v[0-9]+.[0-9]+.[0-9]+"
+
+jobs:
+    pypi-publish:
+      name: upload release to PyPI
+      runs-on: ubuntu-latest
+      permissions:
+        # This permission is needed for private repositories.
+        contents: read
+        # IMPORTANT: this permission is mandatory for trusted publishing
+        id-token: write
+      steps:
+        - uses: actions/checkout@v4
+          with:
+            fetch-depth: 0 # default 1 is, which doesnt allow to get all tags which we need for version from scm
+            fetch-tags: true
+  
+        - uses: pdm-project/setup-pdm@v4
+      
+        - name: Show package version
+          run: |
+            git describe --tags
+            pdm show --version
+  
+        - name: Publish package distributions to PyPI
+          run: | 
+            pdm update
+            pdm publish

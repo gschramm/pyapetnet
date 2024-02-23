@@ -16,12 +16,19 @@ jobs:
         os: [ubuntu-latest]
   
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # default 1 is, which doesnt allow to get all tags which we need for version from scm
+          fetch-tags: true
       - name: Set up PDM
         uses: pdm-project/setup-pdm@v4
         with:
           python-version: ${{ matrix.python-version }}
-  
+
+      - name: Show package version
+        run: |
+          git describe --tags
+          pdm show --version
       - name: Install dependencies and package
         run: |
           pdm update -d -G test
