@@ -5,14 +5,14 @@ description = "Default template for PDM package"
 authors = [
     {name = "Georg Schramm", email = "georg.schramm@kuleuven.be"},
 ]
-requires-python = ">=3.9,<3.11"
+requires-python = ">=3.9,<3.12"
 readme = "README.md"
 license = {text = "MIT"}
 dependencies = [
     "SimpleITK~=2.0",
     "pymirc~=0.29",
     "click~=8.0",
-    "tensorflow~=2.2",
+    "tensorflow~=2.13",
 ]
 classifiers = [
     "License :: OSI Approved :: MIT License",
