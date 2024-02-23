@@ -24,4 +24,4 @@ jobs:
         - name: Publish package distributions to PyPI
           run: | 
             pdm update
-            pdm publish
+            pdm publish --repository testpypi
