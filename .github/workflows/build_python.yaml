@@ -24,6 +24,7 @@ jobs:
 
       - name: Show package version
         run: |
+          git describe --tags
           pdm show --version
       - name: Install dependencies and package
         run: |
