@@ -21,7 +21,10 @@ jobs:
         uses: pdm-project/setup-pdm@v4
         with:
           python-version: ${{ matrix.python-version }}
-  
+
+      - name: Show package version
+        run: |
+          pdm show --version
       - name: Install dependencies and package
         run: |
           pdm update -d -G test
