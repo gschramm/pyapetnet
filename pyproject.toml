@@ -39,6 +39,7 @@ distribution = true
 test = [
     "pytest>=8.0.1",
     "tox>=4.13.0",
+    "tox-pdm>=0.7.2",
 ]
 
 [tool.pdm.version]

@@ -12,8 +12,8 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        python-version: ['3.9','3.10']
-        os: [ubuntu-latest, macos-latest]
+        python-version: ['3.10']
+        os: [ubuntu-latest]
   
     steps:
       - uses: actions/checkout@v3
@@ -26,11 +26,11 @@ jobs:
         run: |
           pdm update -d -G test
           pdm list
-      - name: Run Tests
-        run: |
-          pdm run -v pytest tests
       - name: Test CLI
         run: |
           pdm run pyapetnet_list_models
           pdm run pyapetnet_predict_from_nifti -h
           pdm run pyapetnet_predict_from_dicom -h
+      - name: Run Tests
+        run: |
+          pdm run tox
