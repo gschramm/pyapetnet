@@ -19,28 +19,25 @@ If we you are using pyapetnet in scientific publications, we appreciate citation
 
 ## Installation
 
-### Install miniconda or miniforge
-
-Install the mambaforge from [here](https://github.com/conda-forge/miniforge/releases) and create a new virtual environment containing 
-`pyapetnet` and all dependencies
+`pyapetnet` can be installed from `pypi` using `pip` or from `conda-forge` using `conda`/`mamba` by running
 
 ```
-mamba create -n pyapetnet pyapetnet
+pip install pyapetnet
 ```
+
+or
+
+```
+conda -c conda-forge install pyapetnet
+```
+
 
 ## Testing the installation
 
-To test the installation activate the virtual conda environment
-
-```
-mamba activate pyapetnet
-```
-
-and run
+To test the installation activate your virtual environment and run
 
 ```python
 import pyapetnet
-print(pyapetnet.__version__)
 print(pyapetnet.__file__)
 ```
 
@@ -72,7 +69,7 @@ To make predictions from **dicom images**, use
 pyapetnet_predict_from_dicom osem_dcm_dir t1_dcm_dir S2_osem_b10_fdg_pe2i --show
 ```
 
-The source code of the prediction scripts can be found in the `pyapetnet` subfolder [here](pyapetnet/predict_from_nifti.py) and [here](pyapetnet/predict_from_dicom.py).
+The source code of the prediction scripts can be found in the `scripts` subfolder [here](src/pyapetnet/scripts).
 
 ## Training your own model
 
