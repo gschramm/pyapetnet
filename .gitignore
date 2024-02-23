@@ -116,3 +116,4 @@ venv.bak/
 
 # pdm
 .pdm-python
+.pdm-build/*
