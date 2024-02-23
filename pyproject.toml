@@ -38,6 +38,7 @@ distribution = true
 [tool.pdm.dev-dependencies]
 test = [
     "pytest>=8.0.1",
+    "tox>=4.13.0",
 ]
 
 [tool.pdm.version]
