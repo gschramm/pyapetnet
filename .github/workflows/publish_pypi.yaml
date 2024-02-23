@@ -1,4 +1,4 @@
-name: testpypi publish
+name: pypi publish
 
 on:
   push:
@@ -9,7 +9,7 @@ on:
 
 jobs:
     pypi-publish:
-      name: upload release to TestPyPI
+      name: upload release to PyPI
       runs-on: ubuntu-latest
       permissions:
         # This permission is needed for private repositories.
@@ -32,4 +32,4 @@ jobs:
         - name: Publish package distributions to PyPI
           run: | 
             pdm update
-            pdm publish --repository testpypi
+            pdm publish
