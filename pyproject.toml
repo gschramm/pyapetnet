@@ -5,7 +5,7 @@ description = "Default template for PDM package"
 authors = [
     {name = "Georg Schramm", email = "georg.schramm@kuleuven.be"},
 ]
-requires-python = ">=3.9,<3.12"
+requires-python = ">=3.9,<3.11"
 readme = "README.md"
 license = {text = "MIT"}
 dependencies = [
