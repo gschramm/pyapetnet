@@ -26,6 +26,8 @@ def list_models():
     # parse input parameters
     import pyapetnet
 
+    print(f"pyapetnet.__version__: {pyapetnet.__version__}")
+
     model_path = args.model_path
 
     if model_path is None:
