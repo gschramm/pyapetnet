@@ -19,18 +19,17 @@ If we you are using pyapetnet in scientific publications, we appreciate citation
 
 ## Installation
 
-`pyapetnet` can be installed from `pypi` using `pip` or from `conda-forge` using `conda`/`mamba` by running
-
-```
-pip install pyapetnet
-```
-
-or
+We recommend to install `pyapetnet` from `conda-forge` via
 
 ```
 conda -c conda-forge install pyapetnet
 ```
 
+Alternatively, `pyapetnet` can be also installed from `pypi` via
+
+```
+pip install pyapetnet
+```
 
 ## Testing the installation
 
