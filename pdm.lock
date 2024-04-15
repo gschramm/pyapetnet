@@ -5,7 +5,7 @@
 groups = ["default", "test"]
 strategy = ["cross_platform", "inherit_metadata"]
 lock_version = "4.4.1"
-content_hash = "sha256:44059cf8d34ed5fb1313fdc9968c95c8df2b43e44901e23cd228d5bb65670ffe"
+content_hash = "sha256:8ba8607e4e175ef8b4758e5e4c30d85275bc113366f1a82c6aa500e353f28a4d"
 
 [[package]]
 name = "absl-py"
@@ -449,7 +449,6 @@ version = "2.15.0"
 requires_python = ">=3.8"
 summary = "Deep learning for humans."
 groups = ["default"]
-marker = "(platform_machine == \"arm64\" or platform_machine == \"aarch64\") and platform_system == \"Linux\" or platform_system == \"Windows\" or platform_system == \"Darwin\" and platform_machine == \"arm64\""
 files = [
     {file = "keras-2.15.0-py3-none-any.whl", hash = "sha256:2dcc6d2e30cf9c951064b63c1f4c404b966c59caf09e01f3549138ec8ee0dd1f"},
     {file = "keras-2.15.0.tar.gz", hash = "sha256:81871d298c064dc4ac6b58440fdae67bfcf47c8d7ad28580fab401834c06a575"},
