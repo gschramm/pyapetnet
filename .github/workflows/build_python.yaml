@@ -37,6 +37,11 @@ jobs:
         run: |
           python -m build
 
+      # Install the package
+      - name: Install the package
+        run: |
+          python -m pip install dist/*.whl
+
       # Test importing the package
       - name: Test the package import
         run: |
