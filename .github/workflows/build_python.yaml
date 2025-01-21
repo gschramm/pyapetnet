@@ -1,43 +1,62 @@
-# Workflow to build the parallelproj C/CUDA libs (incl. installation of CUDA)
-name: python build
+name: Build and Test
 
 on:
   push:
-    branches: [ "master" ]
+    branches:
+      - master
   pull_request:
-    branches: [ "master" ]
 
 jobs:
-  Testing:
-    runs-on: ${{ matrix.os }}
+  build-and-test:
+    runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ['3.9','3.10']
-        os: [ubuntu-latest]
-  
+        python-version: [3.9, 3.11]
+        tensorflow-version: [2.13, 2.15]
+
     steps:
-      - uses: actions/checkout@v4
+      # Checkout the repository
+      - name: Checkout code
+        uses: actions/checkout@v3
         with:
-          fetch-depth: 0 # default 1 is, which doesnt allow to get all tags which we need for version from scm
-          fetch-tags: true
-      - name: Set up PDM
-        uses: pdm-project/setup-pdm@v4
+          fetch-depth: 0 # Fetch all history to ensure tags are available
+
+      # Set up Python
+      - name: Set up Python
+        uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python-version }}
 
-      - name: Show package version
+      # Install dependencies
+      - name: Install dependencies
         run: |
-          git describe --tags
-          pdm show --version
-      - name: Install dependencies and package
+          python -m pip install --upgrade pip
+          pip install build
+
+      # Build the package
+      - name: Build the package
         run: |
-          pdm update -d -G test
-          pdm list
-      - name: Test CLI
+          python -m build
+
+      # Install tensorflow
+      - name: Install tensorflow
         run: |
-          pdm run pyapetnet_list_models
-          pdm run pyapetnet_predict_from_nifti -h
-          pdm run pyapetnet_predict_from_dicom -h
-      - name: Run Tests
+          pip install tensorflow==${{ matrix.tensorflow-version }}
+
+      # Install the package
+      - name: Install the package
         run: |
-          pdm run tox
+          pip install dist/*.whl
+
+      # Run tests
+      - name: Run tests
+        run: |
+          pip install pytest
+          pytest -vv tests
+
+      # Test entry points
+      - name: Test entry points
+        run: |
+          pyapetnet_list_models
+          pyapetnet_predict_from_nifti -h
+          pyapetnet_predict_from_dicom -h

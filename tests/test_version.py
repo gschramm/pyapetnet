@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-import pyapetnet._version
+import pyapetnet
 
 
 def test_version() -> None:
-    print(pyapetnet._version.__version__)
+    print(pyapetnet.__version__)
