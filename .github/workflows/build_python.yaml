@@ -32,12 +32,16 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install build
-          pip install tensorflow==${{ matrix.tensorflow-version }}
 
       # Build the package
       - name: Build the package
         run: |
           python -m build
+
+      # Install tensorflow
+      - name: Install tensorflow
+        run: |
+          pip install tensorflow==${{ matrix.tensorflow-version }}
 
       # Install the package
       - name: Install the package
@@ -49,6 +53,10 @@ jobs:
         run: |
           pip install pytest
           pytest -vv tests
+
+      # Test entry points
+      - name: Test entry points
+        run: |
           pyapetnet_list_models
           pyapetnet_predict_from_nifti -h
           pyapetnet_predict_from_dicom -h
