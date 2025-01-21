@@ -1,0 +1,24 @@
+# Include necessary metadata files
+include LICENSE
+include README.md
+include pyproject.toml
+
+# Include only the package files
+graft src/pyapetnet
+
+# Include trained models
+recursive-include src/pyapetnet/trained_models
+
+# Exclude unwanted directories
+prune .git
+prune .github
+prune binder
+prune demo_data
+prune demos
+prune figures
+prune notebooks
+prune scripts
+prune tests
+
+# Exclude unwanted files
+global-exclude *.pyc *.pyo __pycache__

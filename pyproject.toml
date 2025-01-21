@@ -32,8 +32,9 @@ pyapetnet_predict_from_nifti = "pyapetnet.scripts.predict_from_nifti:predict_fro
 [project.urls]
 Homepage = "https://github.com/gschramm/pyapetnet"
 
+
 [tool.setuptools.packages.find]
-where = ["."]
+where = ["src"]
 
 [tool.setuptools_scm]
 version_scheme = "post-release"
